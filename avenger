@@ -1,0 +1,16 @@
+<?php
+ini_set('memory_limit','512M');
+//phpinfo();
+
+use Symfony\Component\Console\Application;
+use Avenger\Controller; 
+
+require __DIR__.'/vendor/autoload.php';
+ 
+$application = new Application('PHP Avenger', '0.1.0');
+
+$application->add(new Avenger\Controller\PasswordCrackingController());
+$application->add(new Avenger\Controller\BruteForceController());
+$application->run();
+ 
+?>
