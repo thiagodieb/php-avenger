@@ -32,10 +32,14 @@ class WordPress
 			
 			$crawler 	= new Crawler($body);
 			$arrLinksJs	= $crawler->filter('script');
+			//var_dump($arrLinksJs);
+			//exit();
 			foreach ($arrLinksJs as $keyTest => $valueTest) {
-				echo $valueTest->attr('src');
-				//var_dump()
+				//echo $valueTest;
+				var_dump($valueTest->getAttribute('src'));
+				//exit();
 			}
+			exit();
 			//$arrLinksJs = $crawler->filterXpath();
 			//$arrLinks	=$regex->getLinks($body);
 			var_dump($arrLinksJs);
@@ -45,6 +49,9 @@ class WordPress
 		}
 		exit();
         
+	}
+	public function getRootUrl(){
+		
 	}
 
 	public function getUsers(){
