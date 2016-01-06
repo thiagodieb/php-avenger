@@ -16,44 +16,60 @@ class WordPress
 	public function isWordPress($url,$proxy="",$tor=""){
 
 		$isUrl   	= v::url()->notEmpty()->validate($url);
-		$client 	= new Client();
-		//$site 		= new Site();
-		$res 		= $client->get( $url,array());
-		//$response 	= $res->send();
-		//$isActive 	= $site->isActive($res->getStatusCode());
-		$body =$res->getBody()->getContents();
-		//echo $body;
-		//exit();
-		//if($isUrl && $isActive){
 		if($isUrl){
-
-			//$bodyaaa 		= $res->getBody();
-
-			
+			$client 	= new Client();
+			$res 		= $client->get( $url,array());
+			$body 		=$res->getBody()->getContents();
 			$crawler 	= new Crawler($body);
-			$arrLinksJs	= $crawler->filter('script');
-			//var_dump($arrLinksJs);
-			//exit();
-			foreach ($arrLinksJs as $keyTest => $valueTest) {
-				//echo $valueTest;
-				var_dump($valueTest->getAttribute('src'));
-				//exit();
+			$baseUrlWordPress=$this->getBaseUrlWordPressCrawler($crawler);
+			if($baseUrlWordPress){
+				return true;
 			}
-			exit();
-			//$arrLinksJs = $crawler->filterXpath();
-			//$arrLinks	=$regex->getLinks($body);
-			var_dump($arrLinksJs);
-			exit();
-			//var_dump($res->getReasonPhrase());
-
+			return false;
 		}
-		exit();
         
 	}
+
+	public function getBaseUrlWordPressByUrl($url){
+		$isUrl   	= v::url()->notEmpty()->validate($url);
+		if($isUrl) {
+			$client 	= new Client();
+			$body 		= $client->get( $url,array())->getBody()->getContents();
+			//$body 		= $res->getBody()->getContents();
+			$crawler 	= new Crawler($body);
+			$arrLinks 	= $crawler->filter('link');
+
+			foreach ($arrLinks as $keyLink => $valueLink) {
+				if (!empty($valueLink->getAttribute('href'))) {
+					$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins).*/", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
+					if ($validXmlrpc) {
+						return $matches[1][0];
+					}
+
+				}
+			}
+		}
+	}
+
+	public function getBaseUrlWordPressCrawler($crawler){
+
+		$arrLinks 	= $crawler->filter('link');
+
+		foreach ($arrLinks as $keyLink => $valueLink) {
+			if (!empty($valueLink->getAttribute('href'))) {
+				$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins).*/", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
+				if ($validXmlrpc) {
+					return $matches[1][0];
+				}
+
+			}
+
+		}
+	}
+
 	public function getRootUrl(){
 		
 	}
-
 
 	public function getUsers(){
 
