@@ -20,6 +20,7 @@ return array(
     'Silex\\' => array($vendorDir . '/silex/silex/src/Silex'),
     'Respect\\Validation\\' => array($vendorDir . '/respect/validation/library'),
     'React\\Promise\\' => array($vendorDir . '/react/promise/src'),
+    'Mmoreram\\Extractor\\' => array($vendorDir . '/mmoreram/extractor/src/Extractor'),
     'GuzzleHttp\\Stream\\' => array($vendorDir . '/guzzlehttp/streams/src'),
     'GuzzleHttp\\Ring\\' => array($vendorDir . '/guzzlehttp/ringphp/src'),
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
