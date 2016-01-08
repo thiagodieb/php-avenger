@@ -4,7 +4,6 @@ namespace Aszone\WordPress;
 
 use GuzzleHttp\Client;
 use Respect\Validation\Validator as v;
-use Symfony\Component\Finder\Finder;
 use Symfony\Component\DomCrawler\Crawler;
 //use Aszone\Site;
 
@@ -71,8 +70,71 @@ class WordPress
 		
 	}
 
-	public function getUsers(){
+	public function getUsers($url,$limitNumberUsers=99999){
 
+		$baseUrlWordPress=$this->getBaseUrlWordPressByUrl($url);
+
+		$userList	= array();
+		//Number for validade finish list of user
+		$emptySequenceUsers=0;
+		for ($i = 1; $i <= $limitNumberUsers; $i++) {
+
+			try{
+
+				$client 	= new Client();
+				$result = $client->get( $baseUrlWordPress.'/?author='.$i, array() );
+				$validGetUserByUrl = preg_match("/(.+?)\/\?author=".$i."/", substr($result->getEffectiveUrl(), 0), $matches, PREG_OFFSET_CAPTURE);
+				var_dump($validGetUserByUrl);
+				if(!$validGetUserByUrl){
+					$username=$this->getUserByUrl($result->getEffectiveUrl());
+				}else{
+					$username=$this->getUserBytagBody($result->getBody()->getContents());
+				}
+
+				$userList[]=$username;
+				echo $username;
+				echo ' | ';
+				$emptySequenceUsers=0;
+			}catch(\Exception $e){
+				if($limitNumberUsers==99999){
+					$emptySequenceUsers++;
+					echo ' | Sequence empty ';
+					if($emptySequenceUsers==10){
+						return $userList;
+					}
+				}
+			}
+
+
+		}
+
+		return $userList;
+
+
+	}
+
+	protected function getUserBytagBody($body){
+
+		$crawler 	= new Crawler($body);
+		$bodys=$crawler->filter('body');
+		foreach ($bodys as $keyBody => $valueBody) {
+			$class=$valueBody->getAttribute('class');
+		}
+		$username = preg_match("/author-(.+?)\s/", substr($class, 0), $matches, PREG_OFFSET_CAPTURE);
+		if(isset($matches[1][0]) and (!empty($matches[1][0]) ) ){
+			return $matches[1][0];
+		}
+
+		return false;
+
+	}
+
+	protected function getUserByUrl($urlUser){
+		$validUser = preg_match("/author\/(.+?)\//", substr($urlUser, 0), $matches, PREG_OFFSET_CAPTURE);
+		if(isset($matches[1][0]) and (!empty($matches[1][0]) ) ){
+			return $matches[1][0];
+		}
+		return false;
 	}
 
 	public function getPlugins(){
