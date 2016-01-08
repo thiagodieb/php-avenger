@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "19aff17398f342b78e7c0c96a192d939",
-    "content-hash": "e4ab51ae4b8a6e62dd8a52af42731aff",
+    "hash": "7f1818e7947fe67d4b77b2d3c4dc5280",
+    "content-hash": "ca44c2bcdfb137dcc31150ba0b95e761",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -207,60 +207,6 @@
                 "silex"
             ],
             "time": "2013-06-13 12:43:39"
-        },
-        {
-            "name": "mmoreram/extractor",
-            "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/mmoreram/extractor.git",
-                "reference": "ec2200483d2dc27617e7bc4a41893dba79f58f14"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/mmoreram/extractor/zipball/ec2200483d2dc27617e7bc4a41893dba79f58f14",
-                "reference": "ec2200483d2dc27617e7bc4a41893dba79f58f14",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.3.3",
-                "symfony/finder": "^2.1|^3.0"
-            },
-            "suggest": {
-                "ext-phar": "For usage of Phar adapter",
-                "ext-rar": "For usage of Rar adapter",
-                "ext-zip": "For usage of Zip adapter"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.2-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Mmoreram\\Extractor\\": "src/Extractor"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Marc Morera",
-                    "email": "yuhu@mmoreram.com"
-                }
-            ],
-            "description": "Extractor project for php",
-            "keywords": [
-                "extractor",
-                "phar",
-                "php",
-                "rar",
-                "zip"
-            ],
-            "time": "2015-11-18 18:17:18"
         },
         {
             "name": "pimple/pimple",
@@ -1196,9 +1142,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "mmoreram/extractor": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

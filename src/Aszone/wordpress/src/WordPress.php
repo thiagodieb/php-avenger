@@ -39,7 +39,9 @@ class WordPress
 			$arrLinks 	= $crawler->filter('link');
 
 			foreach ($arrLinks as $keyLink => $valueLink) {
-				if (!empty($valueLink->getAttribute('href'))) {
+				$validHref=$valueLink->getAttribute('href');
+				
+				if (!empty($validHref)) {
 					$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins).*/", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
 					if ($validXmlrpc) {
 						return $matches[1][0];
@@ -55,7 +57,8 @@ class WordPress
 		$arrLinks 	= $crawler->filter('link');
 
 		foreach ($arrLinks as $keyLink => $valueLink) {
-			if (!empty($valueLink->getAttribute('href'))) {
+			$validHref=$valueLink->getAttribute('href');
+			if (!empty($validHref)) {
 				$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins).*/", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
 				if ($validXmlrpc) {
 					return $matches[1][0];
