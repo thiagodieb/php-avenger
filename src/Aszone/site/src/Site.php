@@ -269,8 +269,6 @@ class Site{
 
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$dataFields,&$excludes) {
 
-
-
 			if(($node->attr('type')!='submit') AND (!$excludes OR ($key = array_key_exists($node->attr('name'), $excludes)) === false))
 			{
 				$dataFields[$node->attr('name')]= $node->attr('value');

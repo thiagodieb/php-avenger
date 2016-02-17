@@ -19,5 +19,6 @@ return array(
     'Avenger\\' => array($baseDir . '/src/Avenger'),
     'Aszone\\WordPress\\' => array($baseDir . '/src/Aszone/wordpress/src'),
     'Aszone\\Site\\' => array($baseDir . '/src/Aszone/site/src'),
+    'Aszone\\Ghdb\\' => array($baseDir . '/src/Aszone/ghdb/src'),
     'App\\' => array($baseDir . '/app'),
 );

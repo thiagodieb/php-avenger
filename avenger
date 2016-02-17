@@ -1,7 +1,7 @@
 <?php
 
-$application = require __DIR__ . '/app/app.php';
+$app = require __DIR__ . '/app/app.php';
 
-$application->run();
+$app->run();
  
 ?>
