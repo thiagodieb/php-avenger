@@ -14,22 +14,7 @@ if (file_exists(__DIR__ . '/config.php')) {
 
 // Initialize Application
 $application = new Application('PHP Avenger','0.1.0');
-$application->register(new SwiftmailerServiceProvider(), array(
-        'swiftmailer.options' => array(
-            'host' => 'smtp.gmail.com',
-            'port' => '465',
-            'username' => 'my_email',
-            'password' => 'my_password')
 
-    ));
-/*$application['swiftmailer.options'] = array(
-    'host' => 'host',
-    'port' => '25',
-    'username' => 'username',
-    'password' => 'password',
-    'encryption' => null,
-    'auth_mode' => null
-);
 //$application->register(new SwiftmailerServiceProvider());
 
 //$application['swiftmailer.options'] = $configMail;

