@@ -279,17 +279,11 @@ class Site{
 
 		//$inputs2 = $crawler->filter('form')->selectButton('input[type=submit]')->form();
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$dataFields,&$excludes) {
-<<<<<<< HEAD
-
-			if(($node->attr('type')!='submit') AND (!$excludes OR ($key = array_key_exists($node->attr('name'), $excludes)) === false))
-=======
 			$keyResult=$node->parents()->filter('form')->attr('action');
 			if((!$excludes OR ($key = array_key_exists($node->attr('name'), $excludes)) === false))
->>>>>>> 0981b4d1c3eb7cc461f9508f0174ba6c28abef67
 			{
 				$dataFields[$this->sanitazeActionForm($keyResult)][$node->attr('name')]= $node->attr('value');
 			}
-
 		});
 
 		return $dataFields;
