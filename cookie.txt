@@ -16,3 +16,9 @@ www.riojurua.com.br	FALSE	/	FALSE	0	wordpress_test_cookie	WP+Cookie+check
 localhost	FALSE	/wp022015/wordpress/	FALSE	1452225605	wp-settings-1	deleted
 localhost	FALSE	/wp022015/wordpress/	FALSE	1483761605	wp-settings-time-1	1452225605
 lenonleite.com.br	FALSE	/	FALSE	0	wordpress_test_cookie	WP+Cookie+check
+www.atmodigital.com.br	FALSE	/	FALSE	0	PHPSESSID	2f0e772e511c9ee5a3911f9db7229d2a
+#HttpOnly_www.atmodigital.com.br	FALSE	/	FALSE	1453259320	wfvt_-1802064871	569ef33089b19
+www.atmodigital.com.br	FALSE	/	FALSE	0	wordpress_test_cookie	WP+Cookie+check
+escolaconcretta.com.br	FALSE	/	FALSE	0	PHPSESSID	1269fc0f062b664f16805fcf35ca2aba
+escolaconcretta.com.br	FALSE	/	FALSE	0	wordpress_test_cookie	WP+Cookie+check
+escolaconcretta.com.br	FALSE	/	FALSE	1456107436	slimstat_tracking_code	1020308id.e74eee9962e5e61e7e98b2efa1ba3b4f

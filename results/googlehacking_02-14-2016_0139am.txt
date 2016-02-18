@@ -1,0 +1,3 @@
+http://sined.etice.ce.gov.br/admin/sql/usuarios_basededados.sql
+http://sined.etice.ce.gov.br/admin/sql/cadastrodeusuarios.sql
+http://sined.etice.ce.gov.br/admin/sql/metaestat.sql
