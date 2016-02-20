@@ -182,8 +182,9 @@ class WordPress
 
 		//preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
 
-		$pos = strpos($html, "<strong>ERROR</strong>");
-		if($pos !== false){
+		$pos = strpos($html, "<strong>ERRO</strong>");
+		$pos2 = strpos($html, "<strong>ERROR</strong>");
+		if($pos !== false OR $pos2!==false){
 			return false;
 		}
 		return true;
@@ -401,33 +402,61 @@ class WordPress
 		ksort($jsonPlugins);
 		return $jsonPlugins;
 	}
-
-	public function sendDataToLoginWordPress($username,$password,$target){
-
-
-		$cookie="cookie.txt";
-
-		$postdata = "log=". $username ."&pwd=". $password ."&wp-submit=Log%20In&redirect_to=". $target ."wp-admin/&testcookie=1";
-		$ch = \curl_init();
-		curl_setopt ($ch, CURLOPT_URL, $target . "wp-login.php");
-		curl_setopt ($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6");
-		curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1);
-		curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt ($ch, CURLOPT_COOKIEJAR, $cookie);
-		curl_setopt ($ch, CURLOPT_REFERER, $target . "wp-admin/");
-		curl_setopt ($ch, CURLOPT_COOKIEFILE, $cookie);
-		curl_setopt ($ch, CURLOPT_POSTFIELDS, $postdata);
-		curl_setopt ($ch, CURLOPT_POST, 1);
-		if(!empty($this->tor)){
-			curl_setopt ($ch, CURLOPT_PROXY, $this->tor);
-			curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
-			curl_setopt($ch, CURLOPT_VERBOSE, 0);
+	private function isHttps($url)
+	{
+		$isValidate=preg_match("/^https?:\/\//",$url,$m,PREG_OFFSET_CAPTURE);
+		if($isValidate)
+		{
+			return $isValidate;
 		}
+		return;
+	}
+	public function sendDataToLoginWordPress($username,$password,$target)
+	{
+		try
+		{
+			$cookie="cookie.txt";
 
-		$result['body'] = curl_exec ($ch);
-		$result['status']=curl_getinfo($ch);
-		curl_close($ch);
+			$postdata = "log=". $username ."&pwd=". $password ."&wp-submit=Log%20In&redirect_to=". $target ."wp-admin/&testcookie=1";
+			$ch = \curl_init();
+			if($this->isHttps($target))
+			{
+				curl_setopt ($ch,CURLOPT_SSL_VERIFYPEER, true);
+			}
+			curl_setopt ($ch, CURLOPT_URL, $target . "wp-login.php");
+			curl_setopt ($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6");
+			curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1);
+			curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt ($ch, CURLOPT_COOKIEJAR, $cookie);
+			curl_setopt ($ch, CURLOPT_REFERER, $target . "wp-admin/");
+			curl_setopt ($ch, CURLOPT_COOKIEFILE, $cookie);
+			curl_setopt ($ch, CURLOPT_POSTFIELDS, $postdata);
+			curl_setopt ($ch, CURLOPT_POST, 1);
+			if(!empty($this->tor)){
+				curl_setopt ($ch, CURLOPT_PROXY, $this->tor);
+				curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+				curl_setopt($ch, CURLOPT_VERBOSE, 0);
+			}
+
+
+			$result['body'] = curl_exec ($ch);
+			$result['status']=curl_getinfo($ch);
+			if($this->isHttps($result['status']['url']))
+			{
+				$result= $this->sendDataToLoginWordPress($username,$password,$this->isHttps($result['status']['url']));
+			}
+			curl_close($ch);
+			return $result;
+		}catch(\Exception $e)
+		{
+			echo $e->getMessage();
+			$result['body'] = $e->getMessage();
+			$result['status']=$e->getCode();
+
+		}
 		return $result;
+
+
 
 	}
 	public function getWordListInArray($wordlist=""){

