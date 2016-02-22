@@ -75,7 +75,7 @@ class WordPress
 
 	public function getBaseUrlWordPressByUrl()
 	{
-		$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/).*/",$this->target,$m,PREG_OFFSET_CAPTURE);
+		$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/|wp-login.php|wp-admin).*/",$this->target,$m,PREG_OFFSET_CAPTURE);
 
 		if ($validXmlrpc) {
 
@@ -95,7 +95,7 @@ class WordPress
 			foreach ($arrLinks as $keyLink => $valueLink)
 			{
 
-				$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/).*/", substr($valueLink->getAttribute('src'), 0), $m, PREG_OFFSET_CAPTURE);
+				$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/|wp-login.php|wp-admin).*/", substr($valueLink->getAttribute('src'), 0), $m, PREG_OFFSET_CAPTURE);
 				if ($validXmlrpc)
 				{
 					return $m[1][0];
@@ -177,14 +177,37 @@ class WordPress
 		}
 
 	}
+	public function checkBlockedTime($html)
+	{
+		$pos3 = strpos($html,"Account blocked for");
+		if($pos3)
+		{
+			$validResult=preg_match("/<span id=\"secondsleft\">(.*)<\/span>/", $html, $m, PREG_OFFSET_CAPTURE);
+			if($validResult)
+			{
+				return $m[1][0];
+			}
+		}
+		return false;
 
-	public function validateLogon($html){
+	}
 
+	public function validateLogon($html)
+	{
+
+		//var_dump($html);
+		//exit();
 		//preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
 
 		$pos = strpos($html, "<strong>ERRO</strong>");
 		$pos2 = strpos($html, "<strong>ERROR</strong>");
-		if($pos !== false OR $pos2!==false){
+		$pos3 = strpos($html,"Account blocked for");
+
+		//in future check timeout
+		if($pos3!==false){
+			//regex to time and use sleep this
+		}
+		if($pos !== false OR $pos2!==false OR $pos3!==false){
 			return false;
 		}
 		return true;
@@ -404,7 +427,7 @@ class WordPress
 	}
 	private function isHttps($url)
 	{
-		$isValidate=preg_match("/^https?:\/\//",$url,$m,PREG_OFFSET_CAPTURE);
+		$isValidate=preg_match("/^https:\/\//",$url,$m,PREG_OFFSET_CAPTURE);
 		if($isValidate)
 		{
 			return $isValidate;
@@ -419,12 +442,13 @@ class WordPress
 
 			$postdata = "log=". $username ."&pwd=". $password ."&wp-submit=Log%20In&redirect_to=". $target ."wp-admin/&testcookie=1";
 			$ch = \curl_init();
+			$header=new FakeHeaders();
 			if($this->isHttps($target))
 			{
-				curl_setopt ($ch,CURLOPT_SSL_VERIFYPEER, true);
+				curl_setopt ($ch,CURLOPT_SSL_VERIFYPEER, false);
 			}
 			curl_setopt ($ch, CURLOPT_URL, $target . "wp-login.php");
-			curl_setopt ($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6");
+			curl_setopt ($ch, CURLOPT_USERAGENT, $header->getUserAgent()['User-Agent']);
 			curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1);
 			curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
 			curl_setopt ($ch, CURLOPT_COOKIEJAR, $cookie);
@@ -441,17 +465,24 @@ class WordPress
 
 			$result['body'] = curl_exec ($ch);
 			$result['status']=curl_getinfo($ch);
-			if($this->isHttps($result['status']['url']))
-			{
-				$result= $this->sendDataToLoginWordPress($username,$password,$this->isHttps($result['status']['url']));
-			}
+
 			curl_close($ch);
+
+			//Check if only login is https, if is https return method with target correcty
+			if($this->isHttps($result['status']['url']) AND is_null($this->isHttps($target)))
+			{
+				$this->target=$result['status']['url'];
+				$baseUrlHttps=$this->getBaseUrlWordPressByUrl($result['status']['url']);
+				$result= $this->sendDataToLoginWordPress($username,$password,$baseUrlHttps);
+			}
+
 			return $result;
 		}catch(\Exception $e)
 		{
 			echo $e->getMessage();
 			$result['body'] = $e->getMessage();
 			$result['status']=$e->getCode();
+			exit();
 
 		}
 		return $result;

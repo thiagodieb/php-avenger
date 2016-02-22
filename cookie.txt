@@ -32,3 +32,4 @@ www.funarte.gov.br	FALSE	/	FALSE	1487486868	wp-settings-104	m1%3Dc%26m8%3Dc%26ed
 www.funarte.gov.br	FALSE	/	FALSE	1487486868	wp-settings-time-104	1455950868
 .www.museus.gov.br	TRUE	/	FALSE	0	qtrans_cookie_test	qTranslate+Cookie+Test
 www.museus.gov.br	FALSE	/	FALSE	0	wordpress_test_cookie	WP+Cookie+check
+www.museus.gov.br	FALSE	/	FALSE	0	PHPSESSID	hq8e7hi0a53qe0bps2ianrp550

