@@ -20,7 +20,7 @@ return array(
     'Aszone\\WordPress\\' => array($baseDir . '/src/Aszone/wordpress/src'),
     'Aszone\\Site\\' => array($baseDir . '/src/Aszone/site/src'),
     'Aszone\\ProxySiteList\\' => array($baseDir . '/src/Aszone/proxysitelist/src'),
-    'Aszone\\FakeHeaders\\' => array($baseDir . '/src/Aszone/fakeheaders/src'),
     'Aszone\\Ghdb\\' => array($baseDir . '/src/Aszone/ghdb/src'),
+    'Aszone\\FakeHeaders\\' => array($baseDir . '/src/Aszone/fakeheaders/src'),
     'App\\' => array($baseDir . '/app'),
 );
