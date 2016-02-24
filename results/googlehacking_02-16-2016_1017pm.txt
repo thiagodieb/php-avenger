@@ -1,5 +1,5 @@
-http://www.sei.ba.gov.br/side/login.wsp
 http://www.aguas.sc.gov.br/servicos/login
+http://www.sei.ba.gov.br/side/login.wsp
 http://www.bilac.sp.gov.br/Administra/login.asp
 http://www.emtu.sp.gov.br/parceiros/escola/login.htm
 http://www.emtu.sp.gov.br/parceiros/adm/login.htm

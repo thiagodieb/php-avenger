@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "b0130a54193a0ceaec7306d35cb5c446",
-    "content-hash": "0f49d13945b35ed623f2666f92129d35",
+    "hash": "65d190f52c15f416d32fe3266f3d35f4",
+    "content-hash": "b1fbad2ff48cefaa1cc4919e5de2d0fd",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -168,21 +168,21 @@
         },
         {
             "name": "knplabs/console-service-provider",
-            "version": "v1.0",
+            "version": "1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/KnpLabs/ConsoleServiceProvider.git",
-                "reference": "1f1a3315409814d01702a47a8823549c6996de41"
+                "reference": "7a839206270755483f6a06a6cfb3308fa6f9c562"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KnpLabs/ConsoleServiceProvider/zipball/1f1a3315409814d01702a47a8823549c6996de41",
-                "reference": "1f1a3315409814d01702a47a8823549c6996de41",
+                "url": "https://api.github.com/repos/KnpLabs/ConsoleServiceProvider/zipball/7a839206270755483f6a06a6cfb3308fa6f9c562",
+                "reference": "7a839206270755483f6a06a6cfb3308fa6f9c562",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3.2",
-                "symfony/console": "~2.1"
+                "symfony/console": "~2.3|~3.0"
             },
             "type": "library",
             "autoload": {
@@ -206,7 +206,7 @@
                 "console",
                 "silex"
             ],
-            "time": "2013-06-13 12:43:39"
+            "time": "2016-02-01 15:38:27"
         },
         {
             "name": "react/promise",
@@ -317,6 +317,49 @@
             "time": "2015-11-25 20:03:11"
         },
         {
+            "name": "shark/simple_html_dom",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/samacs/simple_html_dom.git",
+                "reference": "842b3fc1f9f0c70b8c1b2e93fc451834c42e384d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/samacs/simple_html_dom/zipball/842b3fc1f9f0c70b8c1b2e93fc451834c42e384d",
+                "reference": "842b3fc1f9f0c70b8c1b2e93fc451834c42e384d",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": ">=5.2.4"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "simple_html_dom.php"
+                ],
+                "files": [
+                    "simple_html_dom.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "authors": [
+                {
+                    "name": "S.C. Chen",
+                    "email": "me578022@gmail.com",
+                    "homepage": "http://simplehtmldom.sourceforge.net/"
+                }
+            ],
+            "description": "Simple HTML DOM package.",
+            "homepage": "http://simplehtmldom.sourceforge.net/",
+            "keywords": [
+                "dom",
+                "php dom"
+            ],
+            "time": "2014-10-17 00:16:28"
+        },
+        {
             "name": "swiftmailer/swiftmailer",
             "version": "v5.4.1",
             "source": {
@@ -371,16 +414,16 @@
         },
         {
             "name": "symfony/console",
-            "version": "v2.8.1",
+            "version": "v2.8.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/console.git",
-                "reference": "2e06a5ccb19dcf9b89f1c6a677a39a8df773635a"
+                "reference": "d0239fb42f98dd02e7d342f793c5d2cdee0c478d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/2e06a5ccb19dcf9b89f1c6a677a39a8df773635a",
-                "reference": "2e06a5ccb19dcf9b89f1c6a677a39a8df773635a",
+                "url": "https://api.github.com/repos/symfony/console/zipball/d0239fb42f98dd02e7d342f793c5d2cdee0c478d",
+                "reference": "d0239fb42f98dd02e7d342f793c5d2cdee0c478d",
                 "shasum": ""
             },
             "require": {
@@ -427,7 +470,7 @@
             ],
             "description": "Symfony Console Component",
             "homepage": "https://symfony.com",
-            "time": "2015-12-22 10:25:57"
+            "time": "2016-01-14 08:33:16"
         },
         {
             "name": "symfony/css-selector",
@@ -484,16 +527,16 @@
         },
         {
             "name": "symfony/dom-crawler",
-            "version": "v2.8.1",
+            "version": "v2.8.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/dom-crawler.git",
-                "reference": "a2712aff8b250d9601ad6bd23a2ff82a12730e8e"
+                "reference": "650d37aacb1fa0dcc24cced483169852b3a0594e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/dom-crawler/zipball/a2712aff8b250d9601ad6bd23a2ff82a12730e8e",
-                "reference": "a2712aff8b250d9601ad6bd23a2ff82a12730e8e",
+                "url": "https://api.github.com/repos/symfony/dom-crawler/zipball/650d37aacb1fa0dcc24cced483169852b3a0594e",
+                "reference": "650d37aacb1fa0dcc24cced483169852b3a0594e",
                 "shasum": ""
             },
             "require": {
@@ -536,20 +579,20 @@
             ],
             "description": "Symfony DomCrawler Component",
             "homepage": "https://symfony.com",
-            "time": "2015-12-23 17:16:29"
+            "time": "2016-01-03 15:33:41"
         },
         {
             "name": "symfony/polyfill-mbstring",
-            "version": "v1.0.1",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-mbstring.git",
-                "reference": "49ff736bd5d41f45240cec77b44967d76e0c3d25"
+                "reference": "1289d16209491b584839022f29257ad859b8532d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/49ff736bd5d41f45240cec77b44967d76e0c3d25",
-                "reference": "49ff736bd5d41f45240cec77b44967d76e0c3d25",
+                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/1289d16209491b584839022f29257ad859b8532d",
+                "reference": "1289d16209491b584839022f29257ad859b8532d",
                 "shasum": ""
             },
             "require": {
@@ -561,7 +604,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.0-dev"
+                    "dev-master": "1.1-dev"
                 }
             },
             "autoload": {
@@ -595,13 +638,15 @@
                 "portable",
                 "shim"
             ],
-            "time": "2015-11-20 09:19:13"
+            "time": "2016-01-20 09:13:37"
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "shark/simple_html_dom": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

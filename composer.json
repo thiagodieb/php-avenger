@@ -5,11 +5,15 @@
         "guzzlehttp/guzzle":"~5.3",
         "symfony/dom-crawler":"~2.8",
         "symfony/css-selector":"2.8",
-        "swiftmailer/swiftmailer": "^5.4"
+        "swiftmailer/swiftmailer": "^5.4",
+        "shark/simple_html_dom": "dev-master"
+
     },
     "autoload": {
         "psr-4": {
-
+            "Aszone\\ProxySiteList\\": "src/Aszone/proxysitelist/src",
+            "Aszone\\FakeHeaders\\": "src/Aszone/fakeheaders/src",
+            "Aszone\\Ghdb\\": "src/Aszone/ghdb/src",
             "Aszone\\WordPress\\": "src/Aszone/wordpress/src",
             "Aszone\\Site\\": "src/Aszone/site/src",
             "Avenger\\": "src/Avenger",
