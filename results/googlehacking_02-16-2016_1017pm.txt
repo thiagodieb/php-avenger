@@ -1,8 +1,14 @@
-http://www.aguas.sc.gov.br/servicos/login
-http://www.sei.ba.gov.br/side/login.wsp
-http://www.bilac.sp.gov.br/Administra/login.asp
+http://www.funai.gov.br/arquivos/conteudo/adm/
+http://www.planalto.rs.gov.br/Login
+http://www.inovapaulasouza.sp.gov.br/estrutura/ic/rede-tematicas-inova-paula-souza/logistica/adm
 http://www.emtu.sp.gov.br/parceiros/escola/login.htm
 http://www.emtu.sp.gov.br/parceiros/adm/login.htm
+http://www.itaparica.ba.gov.br/index.php/login
+http://cambuquira.mg.gov.br/index.php/login-logout
+http://www.aguas.sc.gov.br/servicos/login
+http://www.itaparica.ba.gov.br/index.php/login
+http://www.sei.ba.gov.br/side/login.wsp
+http://www.bilac.sp.gov.br/Administra/login.asp
 http://www.cambe.pr.gov.br/site/login.html
 http://www.maracaju.ms.gov.br/author/admin/
 http://www.sajardim.sp.gov.br/author/admin/
@@ -96,7 +102,6 @@ http://www.cade.gov.br:8081/pincade/members/admin/
 https://www.portaldajuventude.prefeitura.sp.gov.br/login/
 http://cpsustentaveis.planejamento.gov.br/forum/profile/admin
 http://www.inaciomartins.pr.gov.br/author/admin/
-http://www.itaparica.ba.gov.br/index.php/login
 http://ead.acessasp.sp.gov.br/dev/moodle/login/index.php
 http://dados.gov.br/user/admin
 http://www.sei.ba.gov.br/side/login.wsp
@@ -116,7 +121,6 @@ http://www.fundaj.gov.br/index.php%3Foption%3Dcom_user%26view%3Dlogin%26return%3
 http://www.mogimirim.sp.gov.br/login
 http://www.sehab.ms.gov.br/author/admin/
 http://www.arsepmaua.sp.gov.br/informativos/author/admin/
-http://cambuquira.mg.gov.br/index.php/login-logout
 http://www.eeb.sei.ba.gov.br/author/admin/
 http://www.cbm.sc.gov.br/ccecobom/index.php/2015-02-25-19-31-44/e-193-consulta-relatorios-tel-adm
 http://www.camararubineia.sp.gov.br/author/admin/

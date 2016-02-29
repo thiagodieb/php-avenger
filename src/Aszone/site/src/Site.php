@@ -35,7 +35,7 @@ class Site{
 					'timeout' => 30,
 				])->getBody()->getContents();
 		}catch(\Exception $e){
-			echo $e->getCode()." - page not Found;";
+			$this->bodyTarget=false;
 		}
 	}
 
@@ -95,6 +95,7 @@ class Site{
 
 	public function formIsAdmin($actionForm)
 	{
+
 		$html = new \simple_html_dom();
 		$html->load($this->bodyTarget);
 		$isPassword=false;
@@ -105,10 +106,14 @@ class Site{
 			if($this->checkInputPassword($node))
 			{
 				$isPassword=true;
+
 			}
+
 			if($this->checkInputUsername($node))
 			{
+
 				$isUsername=true;
+
 			}
 
 			if($isPassword AND $isUsername)
@@ -116,6 +121,7 @@ class Site{
 				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -145,6 +151,7 @@ class Site{
 	}
 	public function getNameFieldPassword($actionForm)
 	{
+
 		$html = new \simple_html_dom();
 		$html->load($this->bodyTarget);
 		$nodes = $html->find("form[action=".$actionForm."] input");
@@ -199,9 +206,9 @@ class Site{
 		{
 			$username=$password;
 		}
+		$dataPost=array_merge($usernameField,$passwordField,$otherFields);
 		$dataPost[key($usernameField)]=$username;
 		$dataPost[key($passwordField)]=$password;
-		$dataPost=array_merge($usernameField,$otherFields);
 
 		$dataToPost=['body'=>$dataPost];
 		$client 	= new Client(['defaults' => [
@@ -210,11 +217,13 @@ class Site{
 			'timeout' => 30
 			]
 		]);
+
 		$data=[];
 		$data['sqlInjection']=false;
 		if(strcasecmp($method,'post')==0){
 			try{
 				$data['body'] = $client->post($action,$dataToPost)->getBody()->getContents();
+				$data['obs'] = "";
 			}catch(\Exception $e){
 				if($e->getCode()=="500")
 				{
@@ -230,8 +239,9 @@ class Site{
 					$count404++;
 
 					echo $count404;
-					$obs ="problem with mount url action";
+					$data['obs'] ="problem with mount url action";
 				}
+				$data['body']="";
 
 			}
 		}
@@ -240,11 +250,13 @@ class Site{
 
 	public function bruteForceAllInjection($action,$method,$usernameField,$passwordField,$otherFields=array(),$wordlist,$usernames=[])
 	{
+
 		//$actionFull=$this->sanitazeActionForm($action);
 
 		$pageControl="";
 		foreach($wordlist as $keyPassword=> $password)
 		{
+
 			if(empty($usernames))
 			{
 				$result=$this->singleBruteForce($action,$method,$usernameField,$passwordField,$otherFields,$password);
@@ -261,6 +273,7 @@ class Site{
 			{
 				$pageControl=$result['body'];
 			}
+
 			$resultIsAdmin=$this->isAdmin($result['body'],$action);
 
 			if((isset($result['body']) AND $pageControl!=$result['body'] AND !$resultIsAdmin ) OR $result['sqlInjection'])

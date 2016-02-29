@@ -2,6 +2,7 @@
 
 namespace Aszone\Ghdb;
 
+use Aszone\FakeHeaders\FakeHeaders;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -19,13 +20,22 @@ class Ghdb{
 
     public $countProxylist;
 
-	public function __construct($dork,$proxylist=false,$tor=false)
+    public $usginVirginProxies;
+
+    public $virginProxies;
+
+    public $coutnVirginProxy;
+
+    public $siteGoogle;
+
+	public function __construct($dork,$proxylist=false,$tor=false,$virginProxies=false)
 	{
 
 		$this->dork = $dork;
         $this->proxylist=$proxylist;
         $this->pathProxy = __DIR__ . '/../resource/proxys.json';
         $this->countProxylist=1;
+        $this->usginVirginProxies=$virginProxies;
         if(file_exists($this->pathProxy))
         {
             unlink($this->pathProxy);
@@ -44,27 +54,64 @@ class Ghdb{
         $count=0;
         $paginator="";
         $resultFinal=array();
+        $listOfVirginProxies = $this->getVirginSiteProxies();
+
+        $countProxyVirgin = rand(0,count($listOfVirginProxies)-1);
+
+
         while ($exit == false) {
             if($count!=0){
                 $numPaginator=100*$count;
                 $paginator="&start=".$numPaginator;
             }
-            $urlOfSearch="https://".$site."/search?q=".$this->dork."&num=100&btnG=Search&pws=1".$paginator;
+
+            $urlOfSearch="https://".$site."/search?q=".urlencode($this->dork)."&num=100&btnG=Search&pws=1".$paginator;
             echo "Page ".$count."\n";
-            $arrLinks=$this->getLinks($urlOfSearch);
+            if($this->usginVirginProxies)
+            {
+                //$urlOfSearch="https://".$site."/search?q=";
+
+                //$urlOfSearch=$listOfVirginProxies[$countProxyVirgin]."?url=".$urlOfSearch."&p=".$this->dork."&num=100&btnG=Search&pws=1".$paginator;
+                $arrLinks=$this->getLinksByVirginProxies($urlOfSearch,$listOfVirginProxies[$countProxyVirgin]);
+
+                if($arrLinks=="repeat")
+                {
+                    $count--;
+                }
+
+                if($countProxyVirgin==count($listOfVirginProxies)-1)
+                {
+                    $countProxyVirgin=0;
+                }
+                else
+                {
+                    $countProxyVirgin++;
+                }
+            }
+            else
+            {
+                $arrLinks=$this->getLinks($urlOfSearch);
+            }
+
+            echo "\n".$urlOfSearch."\n";
 
             $results=$this->sanitazeLinks($arrLinks);
-            if(count($results)==0){
+
+            if(count($results)==0 AND $arrLinks!="repeat"){
                 $exit=true;
             }
-            $resultFinal=array_merge($results,$resultFinal);
+            $resultFinal=array_merge($resultFinal,$results);
             $count++;
-            sleep(1);
         }
 
         return $resultFinal;
 
 	}
+    private function getVirginSiteProxies()
+    {
+        return parse_ini_file(__DIR__."/../resource/PersonalProxy.ini");
+
+    }
 
     public function runGoogleApi()
     {
@@ -99,8 +146,13 @@ class Ghdb{
     public function checkBlacklist($url="")
     {
         if(!empty($url)){
+
             $validXmlrpc = preg_match("/\/\/(.+?)\//", $url, $matches, PREG_OFFSET_CAPTURE);
-            $url=$matches[1][0];
+            $url="";
+            if(isset($matches[1][0]))
+            {
+                $url=$matches[1][0];
+            }
             $ini_blakclist = parse_ini_file(__DIR__."/../resource/Blacklist.ini");
             $key=array_search($url,$ini_blakclist);
             if($key!=false){
@@ -112,13 +164,52 @@ class Ghdb{
 
     public function clearLink($url="")
     {
-        if(!empty($url)){
+        if(!empty($url))
+        {
             $validXmlrpc = preg_match("/search%3Fq%3Dcache:.+?:(.+?)%252B/", $url, $matches, PREG_OFFSET_CAPTURE);
-            if(isset($matches[1][0])) {
-                $url = $matches[1][0];
+            if(isset($matches[1][0]) )
+            {
+                return $matches[1][0];
             }
-            return $url;
+
+            $validXmlrpc = preg_match("/search\?q=cache:.+?:(.+?)\+/", $url, $matches, PREG_OFFSET_CAPTURE);
+            if(isset($matches[1][0]) )
+            {
+                return $matches[1][0];
+            }
+
+            $validXmlrpc = preg_match("/((http|https):\/\/|www)(.+?)\//", $url, $matches, PREG_OFFSET_CAPTURE);
+            if(isset($matches[0][0]))
+            {
+                //var_dump($matches);
+                //$url= $matches[0][0];
+                $pos1 = strpos($url, "www.blogger.com");
+                $pos2 = strpos($url,"youtube.com");
+                $pos3 = strpos($url,".google.");
+                if($pos1 === false AND $pos2 === false AND $pos3 === false)
+                {
+                    return trim($url);
+                }
+            }
+
+            //return $url;
+
+            /*$validXmlrpc = preg_match("/((http|https):\/\/|www)(.+?)\//", $url, $matches, PREG_OFFSET_CAPTURE);
+            if(isset($matches[0][0]))
+            {
+                $url= $matches[0][0];
+                $pos1 = strpos($url, "www.blogger.com");
+                $pos2 = strpos($url,"youtube.com");
+                $pos3 = strpos($url,".google.");
+                if($pos1 === false AND $pos2 === false AND $pos3 === false)
+                {
+                    return $url;
+                }
+            }*/
+
+
         }
+
 
         return false;
     }
@@ -126,24 +217,72 @@ class Ghdb{
     public function getSiteGoogle(){
         $ini_google_sites = parse_ini_file(__DIR__."/../resource/AllGoogleSites.ini");
         $site=$ini_google_sites[array_rand($ini_google_sites)];
+        $this->siteGoogle=$site;
         return $site;
+    }
+
+    private function getLinksByVirginProxies($urlOfSearch,$urlProxie)
+    {
+        $header= new FakeHeaders();
+
+        echo "Proxy : ".$urlProxie."\n";
+
+        $dataToPost=['body' =>
+            ['url' => $urlOfSearch ]
+        ];
+        //exit();
+        $idProxy=0;
+        $valid=true;
+        while($valid==true)
+        {
+            try{
+                $client 	= new Client([
+                    'defaults' => [
+                        'headers' => ['User-Agent' => $header->getUserAgent()],
+                        'proxy'   => $this->proxy,
+                        'timeout' => 60
+                    ]
+                ]);
+                $body = $client->post($urlProxie,$dataToPost)->getBody()->getContents();
+                //$body 		= $client->get($urlOfSearch)->getBody()->getContents();
+                //var_dump($body);
+                $valid      =false;
+                break;
+            }catch(\Exception $e){
+                echo "ERROR : ".$e->getMessage()."\n";
+                if($this->proxy==false){
+                    echo "Your ip is blocked, we are using proxy at now...\n";
+                    $this->proxylist= true;
+                }
+
+                return "repeat";
+
+                sleep(2);
+            }
+        }
+
+        $crawler 	= new Crawler($body);
+        $arrLinks 	= $crawler->filter('a');
+        return $arrLinks;
     }
 
     public function getLinks($urlOfSearch)
     {
+        $header= new FakeHeaders();
         $valid=true;
-        while($valid==true){
+        while($valid==true)
+        {
             try{
                 $client 	= new Client([
                     'defaults' => [
-                        'headers' => ['User-Agent' => $this->setUserAgent()],
+                        'headers' => ['User-Agent' => $header->getUserAgent()],
                         'proxy'   => $this->proxy,
                         'timeout' => 60
                     ]
                 ]);
                 $body 		= $client->get($urlOfSearch)->getBody()->getContents();
                 $valid=false;
-                break;
+
             }catch(\Exception $e){
 
                 echo "ERROR : ".$e->getMessage()."\n";
@@ -165,18 +304,24 @@ class Ghdb{
         $hrefs= array();
         foreach ($links as $keyLink => $valueLink)
         {
-            $validXmlrpc = preg_match("/\/url\?q=(.+?)&sa/", $valueLink->getAttribute('href'), $matches, PREG_OFFSET_CAPTURE);
-            if(isset($matches[1][0]))
+            echo "key => ".$keyLink."\n";
+            echo $valueLink->getAttribute('href');
+            echo "\n";
+            $url=$this->clearLink($valueLink->getAttribute('href'));
+            echo $url;
+            echo "\n";
+            //$url=$this->clearLink($valueLink);
+            $validResultOfBlackList=$this->checkBlacklist($url);
+            var_dump($validResultOfBlackList);
+            echo "\n";
+            if(!$validResultOfBlackList AND $url)
             {
-                $url=$this->clearLink($matches[1][0]);
-                $validResultOfBlackList=$this->checkBlacklist($url);
-                if(!$validResultOfBlackList)
-                {
-                    $hrefs[]=$url;
-                }
+                $hrefs[]=$url;
+
             }
         }
         $hrefs = array_unique($hrefs);
+
         return $hrefs;
     }
 
@@ -253,12 +398,13 @@ class Ghdb{
 
     public function registerLisSitetFreeProxyList()
     {
+        $header= new FakeHeaders();
 
         $listProxysIni = parse_ini_file(__DIR__ . "/../resource/SitesProxysFree.ini");
         echo "Loading proxys by site ".$listProxysIni[2]."\n";
         $client 	= new Client();
         $body 		= $client->get($listProxysIni[2],array(), array(
-            'headers' => array('User-Agent' => $this->setUserAgent())
+            'headers' => array('User-Agent' => $header->getUserAgent())
         ))->getBody()->getContents();
 
         $crawler 	= new Crawler($body);
@@ -278,13 +424,7 @@ class Ghdb{
         return $this->createJsonListProxys($listProxys);
     }
 
-    public function setUserAgent()
-    {
-        $browser = parse_ini_file(__DIR__ . "/../resource/UserAgent/Browser.ini");
-        $system = parse_ini_file(__DIR__ . "/../resource/UserAgent/System.ini");
-        $Locale = parse_ini_file(__DIR__ . "/../resource/UserAgent/Locale.ini");
-        return $browser[rand(0, count($browser) - 1)] . '/' . rand(1, 20) . '.' . rand(0, 20) . ' (' . $system[rand(0, count($system) - 1)] . ' ' . rand(1, 7) . '.' . rand(0, 9) . '; ' . $Locale[rand(0, count($Locale) - 1)] . ';)';
-    }
+
 
     public function createJsonListProxys($datas)
     {

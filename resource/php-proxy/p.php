@@ -36,6 +36,7 @@ $valid_url_regex = '/.*/';
 // ############################################################################
 
 $url = $_GET['url'];
+echo $url;exit();
 
 if ( !$url ) {
   
@@ -73,8 +74,9 @@ if ( !$url ) {
   curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
   curl_setopt( $ch, CURLOPT_HEADER, true );
   curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+  curl_setopt( $ch,CURLOPT_USERAGENT,'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
   
-  curl_setopt( $ch, CURLOPT_USERAGENT, @$_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
+  //curl_setopt( $ch, CURLOPT_USERAGENT, @$_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
   
   list( $header, $contents ) = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );
   

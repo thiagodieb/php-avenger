@@ -83,26 +83,31 @@ class WordPress
 
 		}else{
 			$header=new FakeHeaders();
-			$client 	= new Client(['defaults' => [
-				'headers' => ['User-Agent' => $header->getUserAgent()],
-				'proxy'   => $this->torForGuzzle,
-				'timeout' => 30
+			try{
+				$client 	= new Client(['defaults' => [
+					'headers' => ['User-Agent' => $header->getUserAgent()],
+					'proxy'   => $this->torForGuzzle,
+					'timeout' => 30
 				]
-			]);
-			$body 		= $client->get( $this->target)->getBody()->getContents();
-			$crawler 	= new Crawler($body);
-			$arrLinks 	= $crawler->filter('script');
-			foreach ($arrLinks as $keyLink => $valueLink)
-			{
-
-				$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/|wp-login.php|wp-admin).*/", substr($valueLink->getAttribute('src'), 0), $m, PREG_OFFSET_CAPTURE);
-				if ($validXmlrpc)
+				]);
+				$body 		= $client->get( $this->target)->getBody()->getContents();
+				$crawler 	= new Crawler($body);
+				$arrLinks 	= $crawler->filter('script');
+				foreach ($arrLinks as $keyLink => $valueLink)
 				{
-					return $m[1][0];
+
+					$validXmlrpc = preg_match("/(.+?)((wp-content\/themes|wp-content\/plugins|wp-content\/uploads)|xmlrpc.php|feed\/|comments\/feed\/|wp-login.php|wp-admin).*/", substr($valueLink->getAttribute('src'), 0), $m, PREG_OFFSET_CAPTURE);
+					if ($validXmlrpc)
+					{
+						return $m[1][0];
+					}
 				}
+			}catch(\Exception $e){
+				return false;
 			}
+
 		}
-		return;
+		return false;
 	}
 
 	/*public function getBaseUrlWordPressByUrl(){
@@ -146,36 +151,46 @@ class WordPress
 		$targetTests[0]=$this->getBaseUrlWordPressByUrl();
 		$targetTests[1]=$targetTests[0]."wp-login.php";
 		$header=new FakeHeaders();
-		$client 	= new Client(['defaults' => [
-			'headers' => ['User-Agent' => $header->getUserAgent()],
-			'proxy'   => $this->torForGuzzle,
-			'timeout' => 30
-			]
-		]);
-		foreach($targetTests as $keyTarget=> $targetTest){
-			$res 		= $client->get($targetTest);
-			//Check status block
-			$body 		= $res->getBody()->getContents();
-			$crawler 	= new Crawler($body);
 
-			$arrLinks 	= $crawler->filter('script');
+		foreach($targetTests as $keyTarget=> $targetTest) {
+			try{
+				$client 	= new Client(['defaults' => [
+					'headers' => ['User-Agent' => $header->getUserAgent()],
+					'proxy'   => $this->torForGuzzle,
+					'timeout' => 30
+				]
+				]);
+				$res 		= $client->get($targetTest);
+				//Check status block
+				$body 		= $res->getBody()->getContents();
+				$crawler 	= new Crawler($body);
 
-			foreach ($arrLinks as $keyLink => $valueLink) {
+				$arrLinks 	= $crawler->filter('script');
+
+				foreach ($arrLinks as $keyLink => $valueLink) {
 
 
-				$validHref=$valueLink->getAttribute('src');
-				if (!empty($validHref)) {
-					$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins|wp-includes\/).*/", $validHref, $matches, PREG_OFFSET_CAPTURE);
+					$validHref=$valueLink->getAttribute('src');
+					if (!empty($validHref)) {
+						$validXmlrpc = preg_match("/(.+?)(wp-content\/themes|wp-content\/plugins|wp-includes\/).*/", $validHref, $matches, PREG_OFFSET_CAPTURE);
 
-					if ($validXmlrpc) {
-						return $matches[1][0];
+						if ($validXmlrpc) {
+							return $matches[1][0];
+						}
+
 					}
 
 				}
 
 			}
-		}
+			catch(\Exception $e)
+			{
+				//echo "Error code ".$e->getCode()." => ".$e->getMessage();
 
+					return false;
+			}
+
+		}
 	}
 	public function checkBlockedTime($html)
 	{
@@ -194,22 +209,20 @@ class WordPress
 
 	public function validateLogon($html)
 	{
-
-		//var_dump($html);
-		//exit();
-		//preg_match("/<strong>(.+?)<\/strong>/", $html, $resultMatches, PREG_OFFSET_CAPTURE, 3);
-
-		$pos = strpos($html, "<strong>ERRO</strong>");
-		$pos2 = strpos($html, "<strong>ERROR</strong>");
-		$pos3 = strpos($html,"Account blocked for");
+		$pos = strpos($html['body'], "<strong>ERRO</strong>");
+		$pos2 = strpos($html['body'], "<strong>ERROR</strong>");
+		$pos3 = strpos($html['body'],"Account blocked for");
+		$pos4 = strpos($html['status']['url'], "wp-admin");
 
 		//in future check timeout
-		if($pos3!==false){
-			//regex to time and use sleep this
-		}
-		if($pos !== false OR $pos2!==false OR $pos3!==false){
+		if(($pos !== false OR $pos2!==false OR $pos3!==false ))
+		{
 			return false;
 		}
+		if($pos4===false){
+			return false;
+		}
+
 		return true;
 	}
 
@@ -456,6 +469,9 @@ class WordPress
 			curl_setopt ($ch, CURLOPT_COOKIEFILE, $cookie);
 			curl_setopt ($ch, CURLOPT_POSTFIELDS, $postdata);
 			curl_setopt ($ch, CURLOPT_POST, 1);
+			curl_setopt ($ch, CURLOPT_TIMEOUT, 30);
+			curl_setopt ($ch, CURLOPT_CONNECTTIMEOUT, 30);
+
 			if(!empty($this->tor)){
 				curl_setopt ($ch, CURLOPT_PROXY, $this->tor);
 				curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);

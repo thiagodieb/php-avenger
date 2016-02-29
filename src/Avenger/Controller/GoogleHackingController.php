@@ -19,7 +19,13 @@ use Service\GuzzleTor;
 
 class GoogleHackingController extends Command{
 
-
+	public $tor;
+	public $vp;
+	public $dork;
+	public $email;
+	public $enginers;
+	public $txt;
+	public $proxylist;
 
     protected function configure() {
         $this
@@ -34,14 +40,14 @@ class GoogleHackingController extends Command{
                     	'Set the hash. Example: --tor'),
 					new InputOption(
 						'dork',
-						null,
+						'd',
 						InputOption::VALUE_REQUIRED,
 						'Set dork. Example: --dork'),
 
 					new InputOption(
-						'enginiers',
+						'eng',
 						'e',
-						InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+						InputOption::VALUE_REQUIRED,
 						'What seraches enginer?',
 						array('google', 'googleapi')
 					),
@@ -63,6 +69,11 @@ class GoogleHackingController extends Command{
 						InputOption::VALUE_NONE,
 						'Set dork. Example: --proxylist'),
 					new InputOption(
+						'vp',
+						null,
+						InputOption::VALUE_NONE,
+						'Set dork. Example: --vp'),
+					new InputOption(
 						'email',
 						null,
 						InputOption::VALUE_NONE,
@@ -78,19 +89,23 @@ class GoogleHackingController extends Command{
             )
             ->setHelp('<comment>Command used to brute force</comment>');
     }
-	protected function execute(InputInterface $input, OutputInterface $output) {
-
-		$dork    	= $input->getOption('dork');
-        $enginiers  = $input->getOption('enginiers');
-		$email    	= $input->getOption('email');
-		$txt    	= $input->getOption('txt');
-		$tor    	= $input->getOption('tor');
-		$proxylist    	= $input->getOption('proxylist');
+	protected function execute(InputInterface $input, OutputInterface $output)
+	{
+		$this->validParamns($input,$output);
+		/*$dork    		= $input->getOption('dork');
+		$virginProxies	= $input->getOption('virginProxies');
+        $enginiers  	= $input->getOption('enginiers');
+		$email    		= $input->getOption('email');
+		$txt    		= $input->getOption('txt');
+		$tor    		= $input->getOption('tor');
+		$proxylist    	= $input->getOption('proxylist');*/
 		$filterProxy=array();
 
-        $ghdb = new Ghdb($dork,$proxylist,$tor);
-        foreach($enginiers as $enginer){
-            switch($enginer){
+        $ghdb = new Ghdb($this->dork,$this->proxylist,$this->tor,$this->vp);
+        foreach($this->eng as $enginer)
+		{
+            switch($enginer)
+			{
                 case 'google':
 					$output->writeln("<comment>*".$enginer."</comment>");
                     $result['google']=$ghdb->runGoogle();
@@ -99,14 +114,17 @@ class GoogleHackingController extends Command{
                 case 'googleapi':
                     $result['googleapi']=$ghdb->runGoogleApi();
                     break;
+				default:
+					$output->writeln("<comment>Name Enginer not exist, help me and send email with site of searching not have lenonleite@gmail.com ... </comment>");
+					break;
             }
         }
 
-		if(!empty($email)){
-			$this->sendMail($result,$email);
+		if(!empty($this->email)){
+			$this->sendMail($result,$this->email);
 		}
 
-		if(!empty($txt)){
+		if(!empty($this->txt)){
 			$this->saveTxt($result,$this->createNameFile());
 		}
 
@@ -114,6 +132,40 @@ class GoogleHackingController extends Command{
 
 	}
 
+	protected function validParamns(InputInterface $input,OutputInterface $output)
+	{
+
+		$this->dork    		= $input->getOption('dork');
+		$this->vp			= $input->getOption('vp');
+		$this->eng  		= $this->sanitazeValuesOfEnginers($input->getOption('eng'));
+		$this->email   		= $input->getOption('email');
+		$this->txt    		= $input->getOption('txt');
+		$this->tor	    	= $input->getOption('tor');
+		$this->proxylist   	= $input->getOption('proxylist');
+
+		if(!$this->dork)
+		{
+			$output->writeln("<error>Please, insert your dork... </error>");
+			$output->writeln("<error>example: --dork=\"site:com inurl:/admin\"</error>");
+			exit();
+		}
+		if(!$this->eng)
+		{
+			$output->writeln("<error>Please, insert your sites of searching... </error>");
+			$output->writeln("<error>example: --enginiers=\"google,dukedukego,googleapi\"</error>");
+			exit();
+		}
+
+	}
+
+	protected function sanitazeValuesOfEnginers($enginers)
+	{
+		if($enginers)
+		{
+			return explode(",",$enginers);
+		}
+		return false;
+	}
 	protected function saveTxt($data,$filename)
 	{
 		$file=__DIR__."/../../../results/".$filename.".txt";
@@ -167,8 +219,7 @@ class GoogleHackingController extends Command{
 
 	protected function printResult($resultFinal, OutputInterface $output)
 	{
-		var_dump($resultFinal);
-		exit();
+
 		foreach($resultFinal as $keyResultEnginer=>$resultEnginer){
 			foreach($resultFinal as $keyResult=> $result){
 				var_dump($keyResult);
