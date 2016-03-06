@@ -178,7 +178,7 @@ class Ghdb{
                 return $matches[1][0];
             }
 
-            $validXmlrpc = preg_match("/((http|https):\/\/|www)(.+?)\//", $url, $matches, PREG_OFFSET_CAPTURE);
+            $validXmlrpc = preg_match("/^((http|https):\/\/|www)(.+?)\//", $url, $matches, PREG_OFFSET_CAPTURE);
             if(isset($matches[0][0]))
             {
                 //var_dump($matches);
@@ -304,16 +304,11 @@ class Ghdb{
         $hrefs= array();
         foreach ($links as $keyLink => $valueLink)
         {
-            echo "key => ".$keyLink."\n";
-            echo $valueLink->getAttribute('href');
-            echo "\n";
+
             $url=$this->clearLink($valueLink->getAttribute('href'));
-            echo $url;
-            echo "\n";
             //$url=$this->clearLink($valueLink);
             $validResultOfBlackList=$this->checkBlacklist($url);
-            var_dump($validResultOfBlackList);
-            echo "\n";
+
             if(!$validResultOfBlackList AND $url)
             {
                 $hrefs[]=$url;
