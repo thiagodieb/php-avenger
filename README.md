@@ -1,9 +1,9 @@
 # README #
 This tool has many features:
-- Google Hacking
-- SQL injection vulnerability test
-- Local File Disclosure Vulnerability test
-- Brute force test
+* Google Hacking
+* SQL injection vulnerability test
+* Local File Disclosure Vulnerability test
+* Brute force test
 
 ### How do I get set up? ###
 
