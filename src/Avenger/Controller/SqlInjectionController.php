@@ -244,11 +244,11 @@ class SqlInjectionController extends Command
         //Send Mail with parcial results
         $mailer = new Mailer();
         if(empty($result)){
-            $mailer->sendMessage('lenonleite@gmail.com',"Fail, not finder password in list. =\\");
+            $mailer->sendMessage('you@example.com',"Fail, not finder password in list. =\\");
         }else{
             $msg = "PHP Avenger Informer, SUCCESS:<br><br>Link Vull is ".$result;
 
-            $mailer->sendMessage('lenonleite@gmail.com',$msg);
+            $mailer->sendMessage('you@example.com',$msg);
         }
 
     }

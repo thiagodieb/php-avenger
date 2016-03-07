@@ -19,7 +19,6 @@ return array(
     'Avenger\\' => array($baseDir . '/src/Avenger'),
     'Aszone\\WordPress\\' => array($baseDir . '/src/Aszone/wordpress/src'),
     'Aszone\\Site\\' => array($baseDir . '/src/Aszone/site/src'),
-    'Aszone\\Joomla\\' => array($baseDir . '/src/Aszone/joomla/src'),
     'Aszone\\ProxySiteList\\' => array($baseDir . '/src/Aszone/proxysitelist/src'),
     'Aszone\\Ghdb\\' => array($baseDir . '/src/Aszone/ghdb/src'),
     'Aszone\\FakeHeaders\\' => array($baseDir . '/src/Aszone/fakeheaders/src'),

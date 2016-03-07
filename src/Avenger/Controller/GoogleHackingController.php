@@ -115,7 +115,7 @@ class GoogleHackingController extends Command{
                     $result['googleapi']=$ghdb->runGoogleApi();
                     break;
 				default:
-					$output->writeln("<comment>Name Enginer not exist, help me and send email with site of searching not have lenonleite@gmail.com ... </comment>");
+					$output->writeln("<comment>Name Enginer not exist, help me and send email with site of searching not have you@example.com ... </comment>");
 					break;
             }
         }
@@ -199,7 +199,7 @@ class GoogleHackingController extends Command{
 		//Send Mail with parcial results
 		$mailer = new Mailer();
 		if(empty($resultFinal)){
-			$mailer->sendMessage('lenonleite@gmail.com',"Fail, not finder password in list. =\\");
+			$mailer->sendMessage('you@example.com',"Fail, not finder password in list. =\\");
 		}else{
 			$msg = "PHP Avenger Informer final, list of SUCCESS:<br><br>";
 			foreach($resultFinal as $keyResultEnginer=>$resultEnginer){
@@ -207,7 +207,7 @@ class GoogleHackingController extends Command{
 					$msg.=$keyResultEnginer." ".$result." <br>";
 				}
 			}
-			$mailer->sendMessage('lenonleite@gmail.com',$msg);
+			$mailer->sendMessage('you@example.com',$msg);
 		}
 
 	}

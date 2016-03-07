@@ -37,7 +37,7 @@ class WordPressController extends Command{
                         'mail',
                         'm',
                         InputOption::VALUE_REQUIRED,
-                        'Example: --mail:lenonleite@gmail.com'),
+                        'Example: --mail:you@example.com'),
                 ))
             )
             ->setHelp('<comment>Command used to break hashs in md5</comment>');

