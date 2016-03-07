@@ -1,8 +1,0 @@
-http://sined.etice.ce.gov.br/admin/sql/usuarios_basededados.sql
-http://ftp.bahiatursa.ba.gov.br/sped/integracao/migracao/create_protweb.sql
-http://svn.softwarepublico.gov.br/trac/i3geo/browser/subgrupos/i3geosaude/i3geo/admin/sql/metaestat_basededados.sql
-http://svn.softwarepublico.gov.br/trac/i3geo/changeset/3183/i3geo/admin/sql/usuarios_basededados.sql
-http://sined.etice.ce.gov.br/admin/sql/cadastrodeusuarios.sql
-http://sined.etice.ce.gov.br/admin/sql/metaestat.sql
-https://softwarepublico.gov.br/gitlab/i-educar/i-educar/blob/8ba06eba9ee4688e6b2e06ab996d136a64de6a8d/ieducar/misc/database/deltas/portabilis/30_adiciona_email__status_token_tabela__view__funcionario.sql
-http://svn.softwarepublico.gov.br/trac/i3geo/changeset/3059/i3geo/admin/sql/metaestat_basededados.sql
