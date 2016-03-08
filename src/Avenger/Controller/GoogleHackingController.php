@@ -4,6 +4,8 @@ namespace Avenger\Controller;
 use Knp\Command\Command;
 //use Symfony\Component\Console\Event\ConsoleExceptionEvent;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\ArrayInput;
+
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -89,8 +91,7 @@ class GoogleHackingController extends Command{
             )
             ->setHelp('<comment>Command used to brute force</comment>');
     }
-	protected function execute(InputInterface $input, OutputInterface $output)
-	{
+	protected function execute(InputInterface $input, OutputInterface $output){
 		$this->validParamns($input,$output);
 		/*$dork    		= $input->getOption('dork');
 		$virginProxies	= $input->getOption('virginProxies');
@@ -132,8 +133,21 @@ class GoogleHackingController extends Command{
 
 	}
 
-	protected function validParamns(InputInterface $input,OutputInterface $output)
-	{
+	protected function validParamns(InputInterface $input,OutputInterface $output){
+
+		if(!$input->getOption('dork'))
+		{
+			$output->writeln("<error>Please, insert your dork... </error>");
+			$output->writeln("<error>example: --dork=\"site:com inurl:/admin\"</error>");
+			$this->runHelp($output);
+		}
+		if(!$this->sanitazeValuesOfEnginers($input->getOption('eng')))
+		{
+			$output->writeln("<error>Please, insert your sites of searching... </error>");
+			$output->writeln("<error>example: --enginiers=\"google,dukedukego,googleapi\"</error>");
+			$this->runHelp($output);
+		}
+
 
 		$this->dork    		= $input->getOption('dork');
 		$this->vp			= $input->getOption('vp');
@@ -143,26 +157,24 @@ class GoogleHackingController extends Command{
 		$this->tor	    	= $input->getOption('tor');
 		$this->proxylist   	= $input->getOption('proxylist');
 
-		if(!$this->dork)
-		{
-			$output->writeln("<error>Please, insert your dork... </error>");
-			$output->writeln("<error>example: --dork=\"site:com inurl:/admin\"</error>");
-			exit();
-		}
-		if(!$this->eng)
-		{
-			$output->writeln("<error>Please, insert your sites of searching... </error>");
-			$output->writeln("<error>example: --enginiers=\"google,dukedukego,googleapi\"</error>");
-			exit();
-		}
+	}
+	
+	private function runHelp($output){
 
+		$output->writeln("");
+		$command = $this->getApplication()->find('help');
+		$arguments = array(
+			'command_name' => 'googlehacking',
+		);
+		$Input = new ArrayInput($arguments);
+		$returnCode = $command->run($Input, $output);
+		exit();
 	}
 
-	protected function sanitazeValuesOfEnginers($enginers)
-	{
+	protected function sanitazeValuesOfEnginers($enginers){
 		if($enginers)
 		{
-			return explode(",",$enginers);
+			return @explode(",",$enginers);
 		}
 		return false;
 	}
