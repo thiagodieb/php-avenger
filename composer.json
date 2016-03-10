@@ -1,5 +1,19 @@
 {
+
+    "repositories": [
+        { 
+            "type": "vcs", 
+            "url": "git@bitbucket.org:aszone/search-hacking.git",
+            "branch": "master",
+            "autoload": {
+                    "psr-4": { 
+                       "Aszone\\Component\\SearchHacking\\": "src/"     
+                    }
+            }
+        }
+    ],
     "require": {
+        "aszone/search-hacking": "dev-master",
         "knplabs/console-service-provider": "^1.0",
 		"respect/validation":"~1.0",
         "guzzlehttp/guzzle":"~5.3",
@@ -20,6 +34,5 @@
             "App\\": "app",
             "Service\\": "src/Service"
         }
-
     }
 }
