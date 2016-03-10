@@ -1,7 +1,27 @@
 <?php
 
-$app = require __DIR__ . '/app/app.php';
+use Symfony\Component\Console\Application;
+use Avenger\Controller;
 
-$app->run();
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Apply custom config if available
+
+ini_set('memory_limit','512M');
+
+
+// Initialize Application
+$application = new Application('PHP Avenger','0.1.0');
+
+// Map routes to controllers
+
+$application->add(new Avenger\Controller\PasswordCrackingController());
+$application->add(new Avenger\Controller\BruteForceController());
+$application->add(new Avenger\Controller\WordPressController());
+$application->add(new Avenger\Controller\LocalFileDownloadController());
+$application->add(new Avenger\Controller\SqlInjectionController());
+$application->add(new Avenger\Controller\GoogleHackingController());
+
+$application->run();
  
 ?>
